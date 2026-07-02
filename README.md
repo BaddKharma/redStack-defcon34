@@ -79,7 +79,7 @@ Budget roughly $2 to $3 of AWS spend for the session. The full stack runs about 
 
 **Michael Ortiz** is a Red Team Engineer and SME, U.S. Department of State Red Cell. Founder of devZero Security (SDVOSB, offensive security and security engineering) and developer of redStack. Marine Corps veteran. OSEP, OSCP, CRTO, CRTL. Speaker profile: https://sessionize.com/mike-ortiz
 
-**Michael Kim** is a Senior Consultant in Offensive Security on Palo Alto Networks Unit 42's Proactive Services team, leading red team operations, adversary simulations, and penetration tests for global clients. He moved into cybersecurity during the pandemic and rose from boot camp graduate to senior consultant, bringing a multicultural background across seven countries to his approach to offensive work.
+**Michael Kim** is a Senior Consultant in Offensive Security on Palo Alto Networks Unit 42's Proactive Services team, leading red team operations, adversary simulations, and penetration tests for global clients. He moved into cybersecurity during the pandemic and rose from boot camp graduate to senior consultant, bringing a multicultural background across seven countries to his approach to offensive work. Speaker profile: https://sessionize.com/michael-kim
 
 ---
 
