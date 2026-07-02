@@ -2,6 +2,18 @@
 
 **DEF CON 34. Red team infrastructure on AWS, deployed live in two hours.**
 
+<p align="center">
+  <img src="https://img.shields.io/badge/DEF%20CON-34-B31942?style=for-the-badge&labelColor=0d1117">
+  <img src="https://img.shields.io/badge/Format-Hands--On-B31942?style=for-the-badge&labelColor=0d1117">
+  <img src="https://img.shields.io/badge/Duration-2%20Hours-B31942?style=for-the-badge&labelColor=0d1117">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazonaws&logoColor=FF9900">
+  <img src="https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white">
+  <img src="https://img.shields.io/badge/C2-Mythic%20%7C%20Sliver%20%7C%20Havoc-C0392B?style=for-the-badge">
+</p>
+
 redStack is an open source AWS and Terraform project that stands up a full red team operator stack on demand: three C2 frameworks (Mythic, Sliver, Havoc), a Kali operator, a Windows operator, an Apache redirector with header and URI gating, and a Guacamole portal fronting the environment. One `terraform apply` brings it all up.
 
 This is the landing page for the DEF CON 34 workshop. Slides, syllabus, and supporting docs live here. The platform itself lives in the redStack repo linked below.
