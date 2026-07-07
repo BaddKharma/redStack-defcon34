@@ -6,15 +6,15 @@ Deployment mode is Tunneled Access (OpenVPN to Hack Smarter Labs), not Direct Ac
 
 Work top to bottom. Every step lists the command, what success looks like, and what to try if it fails.
 
-| At a glance | |
-|--|--|
-| Workshop | DefCon, redStack boot-to-breach lab |
-| Mode | Tunneled Access (OpenVPN + WireGuard to Hack Smarter Labs) |
-| Target | ShadowGate (Hack Smarter Labs) |
-| Pre-work time | ~15 to 30 min per AWS account (Phase 1) |
-| Deploy time | ~5 to 10 min apply, plus ~8 to 12 min for the Windows password, plus ~5 min cloud-init |
-| Cost | ~$0.21 to $0.25/hr compute. Destroy when done |
-| Output | `deployment_info.txt` in `redStack/` with every IP, password, and the C2 header token |
+| At a glance   |                                                                                        |
+| ------------- | -------------------------------------------------------------------------------------- |
+| Workshop      | DefCon, redStack boot-to-breach lab                                                    |
+| Mode          | Tunneled Access (OpenVPN + WireGuard to Hack Smarter Labs)                             |
+| Target        | ShadowGate (Hack Smarter Labs)                                                         |
+| Pre-work time | ~15 to 30 min per AWS account (Phase 1)                                                |
+| Deploy time   | ~5 to 10 min apply, plus ~8 to 12 min for the Windows password, plus ~5 min cloud-init |
+| Cost          | ~$0.21 to $0.25/hr compute. Destroy when done                                          |
+| Output        | `deployment_info.txt` in `redStack/` with every IP, password, and the C2 header token  |
 
 ---
 
@@ -253,8 +253,6 @@ If it fails: see the redStack wiki Troubleshooting page (Connectivity Checks). T
 
 The tunnel is a per-session manual start. Do it after the lab verifies. WireGuard between Guacamole and the redirector is already configured automatically during cloud-init.
 
-> **Operational warning: do not rebuild Guacamole during the workshop.** A guac rebuild generates fresh WireGuard keys and pushes a new config to the redirector, but `guacamole_setup.sh` runs `systemctl start wg-quick@wg0` (not `restart`). Since wg0 is already up from the first deploy, `start` is a no-op and the redirector keeps the old keys. The handshake then fails and every internal host loses reachability to the target, while the redirector itself still reaches it, so it looks like a routing problem, not a key mismatch. Deploy and validate the lab before doors open and leave guac alone. If a rebuild is ever unavoidable, run `sudo systemctl restart wg-quick@wg0` on the redirector afterward to resync the tunnel.
-
 ### Step 15. Get your .ovpn onto the redirector
 
 You already have your ShadowGate `.ovpn` on your laptop from pre-work (Step 4). Move it to the redirector in two hops: laptop to the Windows operator via GuacShare, then operator to the redirector via MobaXterm.
@@ -303,18 +301,14 @@ ShadowGate answers ICMP, so a ping reply confirms the path; `TcpTestSucceeded : 
 
 Success: a reply from `<TARGET_IP>` confirms the full path is live: internal host to Guacamole (WireGuard) to redirector (OpenVPN) to the HSL target network. The lab is ready for the attack path.
 
-If it fails, isolate the break from the redirector (SSH in over Guacamole). Work these three checks in order:
+If it fails, isolate the break from the redirector (SSH in over Guacamole):
 
 ```bash
-ip route                                              # expect: 10.1.0.0/16 (your target CIDR) via ... dev tun0
-ping -c3 <TARGET_IP>                                  # redirector to target, over OpenVPN
-sudo wg show                                          # Guacamole peer: recent handshake, nonzero transfer
+ip route              # expect: 10.1.0.0/16 (your target CIDR) via ... dev tun0
+ping -c3 <TARGET_IP>  # redirector to target, over OpenVPN
 ```
 
-Reading the result:
-
-- No `tun0` route to the target CIDR, or ping fails from the redirector: the OpenVPN tunnel or HSL routing is the problem, not the internal path. Recheck Steps 16 and 17, and give the target the HSL boot window (about 5 minutes) before assuming a routing fault.
-- Redirector reaches the target but the Windows operator does not: the guac-to-redirector WireGuard hop is down. Check `wg show` for a stale or missing handshake and run `sudo systemctl restart wg-quick@wg0`, then re-test from Windows. This is the Guacamole-rebuild key-mismatch failure noted in Phase 4.
+If the redirector cannot reach the target either, the OpenVPN tunnel or HSL routing is the problem, not the internal path. Recheck Steps 16 and 17, and give the target the HSL boot window (about 5 minutes) before assuming a routing fault.
 
 ---
 
@@ -344,10 +338,3 @@ The tunnel does not auto-start after a stop or reboot. Re-run `sudo systemctl st
 ## Where this hands off
 
 At the end of Phase 4 the lab is deployed, verified, tunneled, and ShadowGate is reachable. From here the workshop moves into C2 stand-up (Sliver, Mythic, Havoc) and the ShadowGate attack path, covered in their own materials.
-
----
-
-## Known issues and fixes (living log)
-
-- Key path: the wiki Deploy page shows `ssh_private_key_path = "./rs-rsa-key.pem"`. From `redStack/terraform/` that resolves to a nonexistent file and breaks the Windows password decrypt. Correct value is `../rs-rsa-key.pem` (matches `terraform.tfvars.example`). Backport the fix to wiki page `04.-Deploying-Terraform.md`.
-- Windows password timeout: `aws_instance.windows` now has `timeouts { create = "30m" }` and a `postcondition` on `password_data`, so apply blocks until the password is available and fails loudly instead of handing a blank credential to Guacamole. Expect the longer Windows

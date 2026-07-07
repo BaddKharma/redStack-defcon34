@@ -16,7 +16,7 @@
 
 redStack is an open source AWS and Terraform project that stands up a full red team operator stack on demand: three C2 frameworks (Mythic, Sliver, Havoc), a Kali operator, a Windows operator, an Apache redirector with header and URI gating, and a Guacamole portal fronting the environment. One `terraform apply` brings it all up.
 
-This is the landing page for the DEF CON 34 workshop. Slides, syllabus, and supporting docs live here. The platform itself lives in the redStack repo linked below.
+This is the landing page for the DEF CON 34 workshop. Slides and supporting docs live here. The platform itself lives in the redStack repo linked below.
 
 ---
 
@@ -50,16 +50,17 @@ The workshop runs against the live redStack project. Read these before the sessi
 
 - **redStack repo:** https://github.com/BaddKharma/redStack
 - **redStack README and wiki:** https://github.com/BaddKharma/redStack/wiki
+- **Deployment guide:** [DEPLOY.md](DEPLOY.md) — the tunneled-access setup runbook for this workshop
 
 The wiki is the technical source of truth. Deployment, architecture, and the OpenVPN tunnel setup (wiki page 15) are documented there.
 
-Syllabus and slides will be posted here.
+Slides will be posted here.
 
 ---
 
 ## Before You Arrive
 
-Full prerequisites are in the syllabus. In short, arrive with:
+Full prerequisites and setup steps are in the deployment guide ([DEPLOY.md](DEPLOY.md), Phase 1). In short, arrive with:
 
 - A dedicated, throwaway AWS account
 - AWS CLI installed and configured
