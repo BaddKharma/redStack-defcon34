@@ -270,45 +270,54 @@ If it fails: the `vpn-tunnel` service picks the first file alphabetically if sev
 ### Step 16. Start the tunnel
 
 ```bash
-sudo systemctl start vpn-tunnel
-journalctl -u vpn-tunnel -f
+sudo systemctl start vpn-tunnel && sudo journalctl -u vpn-tunnel -f | grep -m1 "Initialization Sequence Completed"
 ```
 
-Wait for `Initialization Sequence Completed`.
+This starts the service and tails the log only until the handshake lands. `grep -m1` exits on the first match, which drops the follow and returns you to the prompt with the `Initialization Sequence Completed` line printed. No manual quit, no getting stuck in the pager.
 
-Success: the service is active and the log shows the completed handshake.
+Success: the command prints `Initialization Sequence Completed` and hands you back the prompt within a few seconds.
 
-If it fails: the service will not start if `~/vpn/` is empty (Step 15). Watch the live log for auth or route errors.
-
-### Step 17. Record the tun0 IP
+If it does not return within ~30 seconds, the handshake has not completed. Ctrl-C out and check status (no pager, nothing to quit):
 
 ```bash
-ip -4 addr show tun0 | grep -oP '(?<=inet\s)\d+(\.\d+)+'
+systemctl status vpn-tunnel --no-pager -l
 ```
 
-This IP is dynamic and changes on every reconnect. If you generate C2 agents, do it after the tunnel is up, not before.
+If it fails: the service will not start if `~/vpn/` is empty (Step 15). The status command above shows auth or route errors inline.
 
-Callback address gotcha (for the attack path, not this guide): against Hack Smarter Labs, C2 implants call back to the redirector public Elastic IP, not the `tun0` IP. HSL does not route VPN client IPs back to the target, so a `tun0` callback never returns. Full callback config lives in CONFIG and ATTACK.
+Note: if you generate C2 agents, do it after the tunnel is up, not before. Beacons always call back to the redirector public Elastic IP (in `deployment_info.txt`), never the `tun0` IP: HSL does not route VPN client IPs back to the target, so a `tun0` callback never returns. Full callback config is in CONFIG and ATTACK.
 
-### Step 18. Confirm reachability to the target
+### Step 17. Confirm reachability to the target
 
-From the Windows workstation (no nmap on Windows, so use a TCP probe):
+ShadowGate sits at `10.1.132.39` (hardcoded here; it does not change at DefCon. If your HSL portal ever shows a different address for your instance, substitute it throughout).
+
+On the Windows workstation, open PowerShell (Start menu, type `powershell`, Enter). Run these one at a time, not as a block:
 
 ```powershell
-ping <TARGET_IP>
-Test-NetConnection <TARGET_IP> -Port 445
+ping 10.1.132.39
+```
+
+```powershell
+Test-NetConnection 10.1.132.39 -Port 445
 ```
 
 ShadowGate answers ICMP, so a ping reply confirms the path; `TcpTestSucceeded : True` on 445 confirms the service is reachable.
 
-Success: a reply from `<TARGET_IP>` confirms the full path is live: internal host to Guacamole (WireGuard) to redirector (OpenVPN) to the HSL target network. The lab is ready for the attack path.
+Success: a reply from `10.1.132.39` confirms the full path is live: internal host to Guacamole (WireGuard) to redirector (OpenVPN) to the HSL target network. The lab is ready for the attack path.
 
-If it fails, isolate the break from the redirector (SSH in over Guacamole):
+If it fails, isolate the break from the redirector (SSH in over Guacamole), one command at a time:
 
 ```bash
-ip route              # expect: 10.1.0.0/16 (your target CIDR) via ... dev tun0
-ping -c3 <TARGET_IP>  # redirector to target, over OpenVPN
+ip route
 ```
+
+Expect `10.1.0.0/16` (your target CIDR) via ... dev tun0.
+
+```bash
+ping -c3 10.1.132.39
+```
+
+Redirector to target, over OpenVPN.
 
 If the redirector cannot reach the target either, the OpenVPN tunnel or HSL routing is the problem, not the internal path. Recheck Steps 16 and 17, and give the target the HSL boot window (about 5 minutes) before assuming a routing fault.
 
@@ -319,3 +328,4 @@ If the redirector cannot reach the target either, the OpenVPN tunnel or HSL rout
 At the end of Phase 4 the lab is deployed, verified, tunneled, and ShadowGate is reachable. Next is CONFIG, which stands up the three C2 backends (Sliver, Mythic, Havoc) and confirms a test beacon from each. ATTACK follows with the ShadowGate chain. Teardown and cost live at the end of ATTACK, since the stack stays up across all three guides; do not destroy between them.
 
 Note: the tunnel does not auto-start after a stop or reboot. If you stop the stack between sessions rather than destroying it, re-run `sudo systemctl start vpn-tunnel` on the redirector when you resume (WireGuard comes back automatically).
+                                                                                                                                                                                                                  

