@@ -4,8 +4,6 @@ The hands-on attack chain: from a deployed lab and validated C2 to a Sliver beac
 
 > Authorization: this runs only against a Hack Smarter Labs ShadowGate instance you are subscribed to, on a per-user instanced connection. No other target.
 
-> Before publishing: this guide bakes in the ShadowGate target IP and the `Administrator` hash. The public HSL walkthrough redacts these on purpose. Redact them, or keep this file out of the public repo and hand the hash out at the session, before any push.
-
 | At a glance   |                                                                          |
 | ------------- | ------------------------------------------------------------------------ |
 | Depends on    | DEPLOY (tunnel up, target reachable) + CONFIG (Sliver listener live)     |
@@ -204,7 +202,7 @@ Success: SYSTEM on the domain controller, domain hashes in hand.
 Your turn. You watched Sliver go from Administrator to SYSTEM with a scheduled task. The Mythic and Havoc beacons from Phase 4 are sitting at Administrator on the same DC, and every one of them holds `SeImpersonatePrivilege`, so the token-abuse ("potato") family is open to you. Land a SYSTEM callback in all three frameworks. Some routes to try:
 
 - Mythic (Apollo): GodPotato, run through Apollo's `execute_assembly` (or SigmaPotato, https://github.com/tylerdotrar/SigmaPotato, a GodPotato successor built for reflective in-memory loading). It abuses `SeImpersonatePrivilege` over DCOM, so it needs no Print Spooler and works cleanly on a domain controller.
-- Havoc: Havoc's built-in `token steal` does not work on this box, because on a hardened Server 2022 DC the only SYSTEM tokens live in protected lsass and cannot be duplicated. Two things do work. 
+- Havoc: Havoc's built-in `token steal` does not work on this box, because on a hardened Server 2022 DC the only SYSTEM tokens live in protected lsass and cannot be duplicated. Two things do work: 
 	- A token-impersonation BOF is the clean in-session option: Mr.Un1k0d3r's Elevate-System-Trusted BOF (`github.com/Mr-Un1k0d3r/Elevate-System-Trusted-BOF`), run with `inline-execute`, impersonates winlogon's SYSTEM token via `SetThreadToken` and flips the demon to SYSTEM (and TrustedInstaller) with no new callback. 
 	- Or stay in the potato family: a DCOM-based potato (SigmaPotato or GodPotato) coerces a fresh SYSTEM token. Avoid PrintSpoofer here, the Print Spooler is usually off on a DC.
 
