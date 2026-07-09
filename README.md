@@ -16,7 +16,7 @@
 
 redStack is an open source AWS and Terraform project that stands up a full red team operator stack on demand: three C2 frameworks (Mythic, Sliver, Havoc), a Kali operator, a Windows operator, an Apache redirector with header and URI gating, and a Guacamole portal fronting the environment. One `terraform apply` brings it all up.
 
-This is the landing page for the DEF CON 34 workshop. Slides and supporting docs live here. The platform itself lives in the redStack repo linked below.
+This is the landing page for the DEF CON 34 workshop. The three workshop guides, slides, and supporting docs live here. The platform itself lives in the redStack repo linked below.
 
 ---
 
@@ -44,15 +44,22 @@ You deploy the stack yourself, walk the operator portal, stand up your C2s, and 
 
 ---
 
+## Workshop Guides
+
+Three guides run the workshop end to end, in order. They assume Tunneled Access and are written for this session, not general use. The stack stays up across all three and is destroyed at the end of ATTACK.
+
+- [1_DEPLOY.md](1_DEPLOY.md): prerequisites and initial deployment. Clean AWS account to a running stack with the OpenVPN tunnel up and ShadowGate reachable.
+- [2_CONFIG.md](2_CONFIG.md): stand up the three C2 backends (Sliver, Mythic, Havoc) behind the redirector and confirm a test beacon from each, using the Windows operator as the test platform. The beacons stay up as heartbeats.
+- [3_ATTACK.md](3_ATTACK.md): the hands-on chain against ShadowGate. Recon over the tunnel, land a Sliver beacon via the redirector public IP, escalate to full control, then tear down.
+
 ## redStack Platform
 
-The workshop runs against the live redStack project. Read these before the session.
+The workshop runs against the live redStack project.
 
-- **redStack repo:** https://github.com/BaddKharma/redStack
-- **redStack README and wiki:** https://github.com/BaddKharma/redStack/wiki
-- **Deployment guide:** [DEPLOY.md](DEPLOY.md) — the tunneled-access setup runbook for this workshop
+- redStack repo: https://github.com/BaddKharma/redStack
+- redStack wiki: https://github.com/BaddKharma/redStack/wiki
 
-The wiki is the technical source of truth. Deployment, architecture, and the OpenVPN tunnel setup (wiki page 15) are documented there.
+The wiki is the public technical source of truth for the platform, including architecture and the OpenVPN tunnel setup (page 15). The three guides above are the operational runbooks for this workshop.
 
 Slides will be posted here.
 

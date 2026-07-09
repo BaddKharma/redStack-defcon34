@@ -1,6 +1,6 @@
-# redStack: Boot-To-Breach Red Team Platform — Deployment Guide (Tunneled Access)
+# redStack: Boot-To-Breach Red Team Platform (Deployment Guide, Tunneled Access)
 
-Step-by-step deploy of the workshop lab: from a clean AWS account to a running redStack with the OpenVPN tunnel up and the ShadowGate target subnet reachable. This is the setup runbook only. C2 stand-up and the attack path are covered in separate materials.
+Step-by-step deploy of the workshop lab: from a clean AWS account to a running redStack with the OpenVPN tunnel up and the ShadowGate target subnet reachable. This is the setup runbook only. C2 stand-up is in CONFIG; the attack path is in ATTACK.
 
 Deployment mode is Tunneled Access (OpenVPN to Hack Smarter Labs), not Direct Access. The redStack wiki stays the source of truth if any fact here drifts. Placeholders in `<angle brackets>` come from your own deploy; lab IPs, passwords, the Windows Administrator password, and the `X-Request-ID` token all print from `terraform output deployment_info` after apply.
 
@@ -8,12 +8,12 @@ Work top to bottom. Every step lists the command, what success looks like, and w
 
 | At a glance   |                                                                                        |
 | ------------- | -------------------------------------------------------------------------------------- |
-| Workshop      | DefCon, redStack boot-to-breach lab                                                    |
-| Mode          | Tunneled Access (OpenVPN + WireGuard to Hack Smarter Labs)                             |
-| Target        | ShadowGate (Hack Smarter Labs)                                                         |
-| Pre-work time | ~15 to 30 min per AWS account (Phase 1)                                                |
-| Deploy time   | ~5 to 10 min apply, plus ~8 to 12 min for the Windows password, plus ~5 min cloud-init |
-| Cost          | ~$0.21 to $0.25/hr compute. Destroy when done                                          |
+| Workshop      | DefCon, redStack boot-to-breach lab                                                     |
+| Mode          | Tunneled Access (OpenVPN + WireGuard to Hack Smarter Labs)                              |
+| Target        | ShadowGate (Hack Smarter Labs)                                                          |
+| Pre-work time | ~15 to 30 min per AWS account (Phase 1)                                                 |
+| Deploy time   | ~5 to 10 min apply, plus ~8 to 12 min for the Windows password, plus ~5 min cloud-init  |
+| Cost          | ~$0.21 to $0.25/hr compute. Destroy when done                                           |
 | Output        | `deployment_info.txt` in `redStack/` with every IP, password, and the C2 header token  |
 
 ---
@@ -105,8 +105,10 @@ Windows (PowerShell):
 
 ```powershell
 aws ec2 create-key-pair --key-name rs-rsa-key --query 'KeyMaterial' --output text | Out-File -Encoding ascii rs-rsa-key.pem
-icacls "rs-rsa-key.pem" /inheritance:r /grant:r "$($env:USERNAME):R"
+icacls "rs-rsa-key.pem" /inheritance:r /grant:r "$($env:USERNAME):F"
 ```
+
+`/inheritance:r` strips every other user's access, which is what satisfies the OpenSSH private-key permission check; granting yourself `F` (Full) keeps the key private while still letting you delete the repo folder at cleanup. A read-only (`:R`) grant blocks `Remove-Item -Recurse` on the folder later.
 
 Success:
 
@@ -286,7 +288,7 @@ ip -4 addr show tun0 | grep -oP '(?<=inet\s)\d+(\.\d+)+'
 
 This IP is dynamic and changes on every reconnect. If you generate C2 agents, do it after the tunnel is up, not before.
 
-Callback address gotcha (for the attack path, not this guide): against Hack Smarter Labs, C2 implants call back to the redirector public Elastic IP, not the `tun0` IP. HSL does not route VPN client IPs back to the target, so a `tun0` callback never returns. Full callback config lives in the attack-path materials.
+Callback address gotcha (for the attack path, not this guide): against Hack Smarter Labs, C2 implants call back to the redirector public Elastic IP, not the `tun0` IP. HSL does not route VPN client IPs back to the target, so a `tun0` callback never returns. Full callback config lives in CONFIG and ATTACK.
 
 ### Step 18. Confirm reachability to the target
 
@@ -312,29 +314,8 @@ If the redirector cannot reach the target either, the OpenVPN tunnel or HSL rout
 
 ---
 
-## Phase 5: Teardown and cost
-
-redStack deployments in the workshop are short-lived. Tear down when done, and run destroy from `redStack/terraform/`, the same directory you applied from:
-
-```bash
-cd redStack/terraform
-terraform destroy
-```
-
-Type `yes`. It releases the Elastic IPs, terminates instances, and removes the VPCs (~5 min). Stopping instances instead of destroying leaves EBS volumes and Elastic IPs billing 24/7, so `destroy` is what actually stops all charges.
-
-Confirm it worked. A real teardown ends with `Destroy complete! Resources: NN destroyed.` where NN is nonzero, and `terraform state list` then comes back empty:
-
-```bash
-terraform state list
-```
-
-Run from the wrong directory and Terraform finds no state, so it reports `No objects need to be destroyed` and `0 destroyed` while your infra keeps running and billing. `0 destroyed` is not a successful teardown. If you see it, `cd` into `redStack/terraform/` and run destroy again.
-
-The tunnel does not auto-start after a stop or reboot. Re-run `sudo systemctl start vpn-tunnel` on the redirector when you resume. WireGuard comes back automatically.
-
----
-
 ## Where this hands off
 
-At the end of Phase 4 the lab is deployed, verified, tunneled, and ShadowGate is reachable. From here the workshop moves into C2 stand-up (Sliver, Mythic, Havoc) and the ShadowGate attack path, covered in their own materials.
+At the end of Phase 4 the lab is deployed, verified, tunneled, and ShadowGate is reachable. Next is CONFIG, which stands up the three C2 backends (Sliver, Mythic, Havoc) and confirms a test beacon from each. ATTACK follows with the ShadowGate chain. Teardown and cost live at the end of ATTACK, since the stack stays up across all three guides; do not destroy between them.
+
+Note: the tunnel does not auto-start after a stop or reboot. If you stop the stack between sessions rather than destroying it, re-run `sudo systemctl start vpn-tunnel` on the redirector when you resume (WireGuard comes back automatically).
