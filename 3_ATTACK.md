@@ -53,9 +53,16 @@ Target IP. ShadowGate sits at `10.1.132.39`, inside the `vpn_tunnel_cidrs` you s
 
 From Kali (Guacamole > Kali SSH), confirm the tunnel routes to the target and fingerprint it.
 
+Confirm `10.1.0.0/16` routes via the Guacamole ENI:
+
 ```bash
-ip route                        # confirm 10.1.0.0/16 routes via the Guacamole ENI
-nmap -Pn -sC -sV 10.1.132.39    # DC01: SMB, Kerberos, LDAP, AD CS web enrollment
+ip route
+```
+
+Fingerprint DC01 (SMB, Kerberos, LDAP, AD CS web enrollment):
+
+```bash
+nmap -Pn -sC -sV 10.1.132.39
 ```
 
 Add the host entry so domain tooling resolves names:
@@ -249,4 +256,4 @@ Also disconnect the HSL side and confirm your CloudWatch billing alarm cleared.
 
 ## Where this ends
 
-ShadowGate under SYSTEM via a Sliver beacon that traversed the redirector, with Mythic and Havoc beacons staged through th
+ShadowGate under SYSTEM via a Sliver beacon that traversed the redirector, with Mythic and Havoc beacons staged through that same foothold and their SYSTEM step left to the attendee, then a clean teardown. That is the full boot-to-breach arc: DEPLOY stood up the platform, CONFIG proved all three callback paths, ATTACK used all three against a live target.

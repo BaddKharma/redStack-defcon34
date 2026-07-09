@@ -1,8 +1,8 @@
 # redStack: Boot-To-Breach Red Team Platform (Deployment Guide, Tunneled Access)
 
-Step-by-step deploy of the workshop lab: from a clean AWS account to a running redStack with the OpenVPN tunnel up and the ShadowGate target subnet reachable. This is the setup runbook only. C2 stand-up is in CONFIG; the attack path is in ATTACK.
+Deploy the workshop lab from a clean AWS account to a running redStack: tunnel up, ShadowGate reachable. Setup only; C2 stand-up is in CONFIG, the attack path in ATTACK. Mode is Tunneled Access (OpenVPN to Hack Smarter Labs).
 
-Deployment mode is Tunneled Access (OpenVPN to Hack Smarter Labs), not Direct Access. The redStack wiki stays the source of truth if any fact here drifts. Placeholders in `<angle brackets>` come from your own deploy; lab IPs, passwords, the Windows Administrator password, and the `X-Request-ID` token all print from `terraform output deployment_info` after apply.
+Placeholders in `<angle brackets>` come from your own deploy and print from `terraform output deployment_info` after apply. The [redStack wiki](https://github.com/BaddKharma/redStack/wiki) is the source of truth if anything here drifts.
 
 Work top to bottom. Every step lists the command, what success looks like, and what to try if it fails.
 
@@ -20,17 +20,9 @@ Work top to bottom. Every step lists the command, what success looks like, and w
 
 ## Directory model (read this first)
 
-Two locations matter, and mixing them up is the most common cause of a broken deploy.
+Terraform runs from `redStack/terraform/`, but `rs-rsa-key.pem` (the key Terraform uses to decrypt the Windows password) sits one level up in the repo root. So `terraform.tfvars` must set `ssh_private_key_path = "../rs-rsa-key.pem"`, or the decrypt silently fails and the Windows password shows "(not yet available)". 
 
-`redStack/` (repo root) holds only the SSH private key, `rs-rsa-key.pem`. `redStack/terraform/` holds the `.tf` files, `terraform.tfvars`, and the state files, and every `terraform` command runs from there.
-
-Because Terraform runs from `redStack/terraform/` but the key lives one level up in the root, the key path in `terraform.tfvars` is relative to the `terraform/` directory:
-
-```hcl
-ssh_private_key_path = "../rs-rsa-key.pem"
-```
-
-Use `../rs-rsa-key.pem`, not `./rs-rsa-key.pem`. The `./` form resolves to `redStack/terraform/rs-rsa-key.pem`, which does not exist, and silently breaks the Windows Administrator password decrypt (it shows as "(not yet available)").
+Full directory layout is in the [redStack wiki](https://github.com/BaddKharma/redStack/wiki).
 
 ---
 
@@ -51,9 +43,16 @@ Install both, then configure AWS credentials for an IAM user with `Administrator
 Success:
 
 ```bash
-aws sts get-caller-identity   # returns your Account, Arn, and UserId
-terraform --version           # v1.0 or higher
+aws sts get-caller-identity
 ```
+
+Returns your Account, Arn, and UserId.
+
+```bash
+terraform --version
+```
+
+Reports v1.0 or higher.
 
 If it fails: `InvalidClientTokenId` or `SignatureDoesNotMatch` means the keys were mistyped, re-run `aws configure`. Terraform below 1.0, upgrade. The region here must match `aws_region` in `terraform.tfvars`.
 
@@ -93,6 +92,12 @@ If it fails: no `git`, install it. Corporate proxy blocking GitHub, clone over S
 
 Create the key from inside `redStack/` so the `.pem` lands in the repo root next to `terraform/`. This is the file Terraform uses to decrypt the Windows password, and keeping it here is what makes `ssh_private_key_path = "../rs-rsa-key.pem"` resolve correctly.
 
+Windows (PowerShell):
+
+```powershell
+aws ec2 create-key-pair --key-name rs-rsa-key --query 'KeyMaterial' --output text | Out-File -Encoding ascii rs-rsa-key.pem
+```
+
 Linux / macOS:
 
 ```bash
@@ -101,19 +106,10 @@ aws ec2 create-key-pair --key-name rs-rsa-key \
 chmod 400 ./rs-rsa-key.pem
 ```
 
-Windows (PowerShell):
-
-```powershell
-aws ec2 create-key-pair --key-name rs-rsa-key --query 'KeyMaterial' --output text | Out-File -Encoding ascii rs-rsa-key.pem
-icacls "rs-rsa-key.pem" /inheritance:r /grant:r "$($env:USERNAME):F"
-```
-
-`/inheritance:r` strips every other user's access, which is what satisfies the OpenSSH private-key permission check; granting yourself `F` (Full) keeps the key private while still letting you delete the repo folder at cleanup. A read-only (`:R`) grant blocks `Remove-Item -Recurse` on the folder later.
-
-Success:
+Success (the key is present in `redStack/`, mode 400):
 
 ```bash
-ls -l rs-rsa-key.pem                          # present in redStack/, mode 400
+ls -l rs-rsa-key.pem
 aws ec2 describe-key-pairs --key-names rs-rsa-key
 ```
 
@@ -135,10 +131,12 @@ If it fails: output with colons is IPv6, re-run with `-4`. The security groups o
 
 ### Step 8. Configure terraform.tfvars
 
+On Linux, swap `notepad` for `nano`.
+
 ```bash
 cd terraform
 cp terraform.tfvars.example terraform.tfvars
-notepad terraform.tfvars      # or: nano terraform.tfvars if on Linux
+notepad terraform.tfvars
 ```
 
 Set the three values personal to your deploy:
@@ -162,8 +160,6 @@ Tunnel CIDRs. Route only the specific target subnet you need, never a supernet t
 ```hcl
 vpn_tunnel_cidrs = ["10.1.0.0/16"]   # add other HSL /16s as needed; never 10.50/16 or 10.60/16
 ```
-
-Leave Sliver on `t3.medium`. The Go cross-compiler exhausts a `t3.small` during implant generation and hangs SSH.
 
 Success: `terraform.tfvars` saved with your IP, `ssh_private_key_path = "../rs-rsa-key.pem"`, the three tunnel values, and the RFC1918 CIDRs.
 
@@ -190,7 +186,7 @@ Type `yes`. Apply runs about 5 to 10 minutes. Expect the Windows instance to sit
 
 Cloud-init keeps running after apply returns. Linux hosts and Guacamole come up shortly after; the Windows workstation and the Mythic UI need roughly another 10 minutes.
 
-If you plan to use Havoc this session, kick off its build now so it compiles in the background (~1 GB download, ~9 min). SSH to the Havoc host and run:
+Kick off the Havoc build now so it compiles while the rest of the stack finishes (~1 GB download, ~9 min). Run it from the Havoc desktop, not over SSH, so the long build cannot tie up or hang an SSH session: once Guacamole is up (a couple minutes after apply), open Guacamole > Havoc Desktop (VNC), open a terminal, and run:
 
 ```bash
 ~/build_havoc.sh
@@ -328,4 +324,3 @@ If the redirector cannot reach the target either, the OpenVPN tunnel or HSL rout
 At the end of Phase 4 the lab is deployed, verified, tunneled, and ShadowGate is reachable. Next is CONFIG, which stands up the three C2 backends (Sliver, Mythic, Havoc) and confirms a test beacon from each. ATTACK follows with the ShadowGate chain. Teardown and cost live at the end of ATTACK, since the stack stays up across all three guides; do not destroy between them.
 
 Note: the tunnel does not auto-start after a stop or reboot. If you stop the stack between sessions rather than destroying it, re-run `sudo systemctl start vpn-tunnel` on the redirector when you resume (WireGuard comes back automatically).
-                                                                                                                                                                                                                  

