@@ -46,9 +46,10 @@ You deploy the stack yourself, walk the operator portal, stand up your C2s, and 
 
 ## Workshop Guides
 
-Three guides run the workshop end to end, in order. They assume Tunneled Access and are written for this session, not general use. The stack stays up across all three and is destroyed at the end of ATTACK.
+A prerequisites checklist plus three guides run the workshop end to end, in order. They assume Tunneled Access and are written for this session, not general use. The stack stays up across all three guides and is destroyed at the end of ATTACK.
 
-- [1_DEPLOY.md](1_DEPLOY.md): prerequisites and initial deployment. Clean AWS account to a running stack with the OpenVPN tunnel up and ShadowGate reachable.
+- [0_PREREQ.md](0_PREREQ.md): what to have ready before the session. Throwaway AWS account, AWS CLI and Terraform, Kali Marketplace EULA, Hack Smarter Labs `.ovpn`, repo clone, SSH key, and your public IP. Do it ahead of time.
+- [1_DEPLOY.md](1_DEPLOY.md): initial deployment. Clean AWS account to a running stack with the OpenVPN tunnel up and ShadowGate reachable.
 - [2_CONFIG.md](2_CONFIG.md): stand up the three C2 backends (Sliver, Mythic, Havoc) behind the redirector and confirm a test beacon from each, using the Windows operator as the test platform. The beacons stay up as heartbeats.
 - [3_ATTACK.md](3_ATTACK.md): the hands-on chain against ShadowGate. Recon over the tunnel, land a Sliver beacon via the redirector public IP, escalate to full control, then tear down.
 
