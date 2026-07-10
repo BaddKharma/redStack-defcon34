@@ -37,8 +37,8 @@ This is the landing page for the DEF CON 34 workshop. The three workshop guides,
 | Village | Date and Time |
 |---|---|
 | Red Team Village | Date TBD |
-| Adversary Village | Date TBD |
 | Noob Village | Saturday, Aug 8, 1:00-2:50pm |
+| Adversary Village | Sunday, Aug 9, 10:00-11:55am |
 
 You deploy the stack yourself, walk the operator portal, stand up your C2s, and follow a full attack chain against a live range, landing a Sliver beacon and escalating to full control. The session closes with a clean teardown and cost management.
 
