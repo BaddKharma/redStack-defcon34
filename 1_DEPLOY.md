@@ -2,6 +2,8 @@
 
 Deploy the workshop lab from a clean AWS account to a running redStack: tunnel up, ShadowGate reachable. Setup only; C2 stand-up is in CONFIG, the attack path in ATTACK. Mode is Tunneled Access (OpenVPN to Hack Smarter Labs).
 
+Before you start, complete everything in 0_PREREQ (AWS account, AWS CLI and Terraform, Kali Marketplace EULA, Hack Smarter Labs `.ovpn`, repo clone, SSH key pair, your public IP). This guide picks up from there.
+
 Placeholders in `<angle brackets>` come from your own deploy and print from `terraform output deployment_info` after apply. The [redStack wiki](https://github.com/BaddKharma/redStack/wiki) is the source of truth if anything here drifts.
 
 Work top to bottom. Every step lists the command, what success looks like, and what to try if it fails.
@@ -11,7 +13,7 @@ Work top to bottom. Every step lists the command, what success looks like, and w
 | Workshop      | DefCon, redStack boot-to-breach lab                                                     |
 | Mode          | Tunneled Access (OpenVPN + WireGuard to Hack Smarter Labs)                              |
 | Target        | ShadowGate (Hack Smarter Labs)                                                          |
-| Pre-work time | ~15 to 30 min per AWS account (Phase 1)                                                 |
+| Prerequisites | Complete 0_PREREQ first (~15 to 30 min per AWS account)                                 |
 | Deploy time   | ~5 to 10 min apply, plus ~8 to 12 min for the Windows password, plus ~5 min cloud-init  |
 | Cost          | ~$0.21 to $0.25/hr compute. Destroy when done                                           |
 | Output        | `deployment_info.txt` in `redStack/` with every IP, password, and the C2 header token  |
@@ -20,116 +22,15 @@ Work top to bottom. Every step lists the command, what success looks like, and w
 
 ## Directory model (read this first)
 
-Terraform runs from `redStack/terraform/`, but `rs-rsa-key.pem` (the key Terraform uses to decrypt the Windows password) sits one level up in the repo root. So `terraform.tfvars` must set `ssh_private_key_path = "../rs-rsa-key.pem"`, or the decrypt silently fails and the Windows password shows "(not yet available)". 
+Terraform runs from `redStack/terraform/`, but `rs-rsa-key.pem` (the key Terraform uses to decrypt the Windows password) sits one level up in the repo root. So `terraform.tfvars` must set `ssh_private_key_path = "../rs-rsa-key.pem"`, or the decrypt silently fails and the Windows password shows "(not yet available)".
 
 Full directory layout is in the [redStack wiki](https://github.com/BaddKharma/redStack/wiki).
 
 ---
 
-## Phase 1: Pre-work (do this before the workshop)
+## Phase 1: Configure and deploy
 
-Everything in Phase 1 is one-time per AWS account and should not eat into the session clock.
-
-### Step 1. Dedicated throwaway AWS account
-
-Use a dedicated, throwaway AWS account, not your production account. redStack stands up public-facing hosts and the AWS Acceptable Use Policy applies.
-
-If it fails: account signup needs a payment method even for lab use.
-
-### Step 2. Install and configure the AWS CLI and Terraform
-
-Install both, then configure AWS credentials for an IAM user with `AdministratorAccess` on the throwaway account (`aws configure`, region `us-east-1`, output `json`).
-
-Success:
-
-```bash
-aws sts get-caller-identity
-```
-
-Returns your Account, Arn, and UserId.
-
-```bash
-terraform --version
-```
-
-Reports v1.0 or higher.
-
-If it fails: `InvalidClientTokenId` or `SignatureDoesNotMatch` means the keys were mistyped, re-run `aws configure`. Terraform below 1.0, upgrade. The region here must match `aws_region` in `terraform.tfvars`.
-
-### Step 3. Accept the Kali Marketplace EULA
-
-One-time, no charge, per AWS account. Skip it and the apply fails on the Kali AMI with `OptInRequired`.
-
-1. Visit https://aws.amazon.com/marketplace/pp/prodview-fznsw3f7mq7to signed in to the same account.
-2. Continue to Subscribe, then Accept Terms.
-
-Success: the Marketplace page shows the subscription active.
-
-If it fails: if apply later errors `OptInRequired`, finish the subscription and re-run apply. No state cleanup needed.
-
-### Step 4. Hack Smarter Labs access and .ovpn
-
-Have a Hack Smarter Labs account with an active subscription covering the target machine, and download your `.ovpn` connection pack.
-
-ShadowGate: https://www.hacksmarter.org/courses/e7586073-d447-41db-8f8e-6bd22576556d
-
-Success: you have a `.ovpn` file saved locally and the ShadowGate machine launches in the HSL portal.
-
-If it fails: the target IP shown at launch is inside the range and does not change your VPN config. The `.ovpn` pulls its routes from HSL at connect time.
-
-### Step 5. Clone the repository
-
-```bash
-git clone https://github.com/BaddKharma/redStack.git
-cd redStack
-```
-
-Success: you are inside `redStack/` and see `terraform/` with `terraform.tfvars.example` in it.
-
-If it fails: no `git`, install it. Corporate proxy blocking GitHub, clone over SSH: `git clone git@github.com:BaddKharma/redStack.git`.
-
-### Step 6. Create the SSH key pair (right after clone, lands in `redStack/`)
-
-Create the key from inside `redStack/` so the `.pem` lands in the repo root next to `terraform/`. This is the file Terraform uses to decrypt the Windows password, and keeping it here is what makes `ssh_private_key_path = "../rs-rsa-key.pem"` resolve correctly.
-
-Windows (PowerShell):
-
-```powershell
-aws ec2 create-key-pair --key-name rs-rsa-key --query 'KeyMaterial' --output text | Out-File -Encoding ascii rs-rsa-key.pem
-```
-
-Linux / macOS:
-
-```bash
-aws ec2 create-key-pair --key-name rs-rsa-key \
-  --query 'KeyMaterial' --output text > ./rs-rsa-key.pem
-chmod 400 ./rs-rsa-key.pem
-```
-
-Success (the key is present in `redStack/`, mode 400):
-
-```bash
-ls -l rs-rsa-key.pem
-aws ec2 describe-key-pairs --key-names rs-rsa-key
-```
-
-If it fails: `InvalidKeyPair.Duplicate` means the key name already exists in AWS, either reuse the existing `.pem` or delete the AWS key (`aws ec2 delete-key-pair --key-name rs-rsa-key`) and recreate. Confirm the file is `redStack/rs-rsa-key.pem`, not inside `terraform/`. It is already covered by `.gitignore`.
-
-### Step 7. Record your public IP
-
-```bash
-curl -4 -s ifconfig.me
-```
-
-Success: a single IPv4 address. You append `/32` to it in Phase 2.
-
-If it fails: output with colons is IPv6, re-run with `-4`. The security groups only wire up IPv4.
-
----
-
-## Phase 2: Configure and deploy
-
-### Step 8. Configure terraform.tfvars
+### Step 1. Configure terraform.tfvars
 
 On Linux, swap `notepad` for `nano`.
 
@@ -142,7 +43,7 @@ notepad terraform.tfvars
 Set the three values personal to your deploy:
 
 ```hcl
-localPub_ip          = "<YOUR_IPV4>/32"       # from Step 7, keep the /32
+localPub_ip          = "<YOUR_IPV4>/32"       # from 0_PREREQ, keep the /32
 ssh_key_name         = "rs-rsa-key"           # matches the AWS key pair
 ssh_private_key_path = "../rs-rsa-key.pem"    # key is in the repo root, not here
 ```
@@ -165,7 +66,7 @@ Success: `terraform.tfvars` saved with your IP, `ssh_private_key_path = "../rs-r
 
 If it fails: nothing runs yet, but recheck the key path now. It is the single most common misconfiguration.
 
-### Step 9. Init and plan
+### Step 2. Init and plan
 
 ```bash
 terraform init
@@ -176,7 +77,7 @@ Success: `init` reports success, and `plan` shows roughly 90 resources to add (7
 
 If it fails: `InvalidKeyPair.NotFound`, `ssh_key_name` does not match AWS, list with `aws ec2 describe-key-pairs --query 'KeyPairs[].KeyName'`. `VPCLimitExceeded`, you are at the 5-VPC regional limit, delete unused VPCs or set `use_default_vpc = true`.
 
-### Step 10. Apply
+### Step 3. Apply
 
 ```bash
 terraform apply
@@ -194,9 +95,9 @@ Kick off the Havoc build now so it compiles while the rest of the stack finishes
 
 Success: `Apply complete! Resources: NN added, 0 changed, 0 destroyed.`
 
-If it fails: `OptInRequired`, finish the Kali subscription (Step 3) and re-run, no cleanup needed. If it stops on the Windows postcondition ("Windows password_data was not available before timeouts.create expired"), the AMI ran long, re-run `terraform apply` and it picks up the now-available password.
+If it fails: `OptInRequired`, finish the Kali subscription (0_PREREQ Step 3) and re-run, no cleanup needed. If it stops on the Windows postcondition ("Windows password_data was not available before timeouts.create expired"), the AMI ran long, re-run `terraform apply` and it picks up the now-available password.
 
-### Step 11. Capture deployment info
+### Step 4. Capture deployment info
 
 ```bash
 terraform output deployment_info
@@ -210,9 +111,9 @@ If it fails: if the Windows password still reads "(not yet available)," run `ter
 
 ---
 
-## Phase 3: Verify the lab
+## Phase 2: Verify the lab
 
-### Step 12. Access the Guacamole portal
+### Step 5. Access the Guacamole portal
 
 Open `https://<GUAC_PUBLIC_IP>/guacamole`, accept the self-signed cert warning, and log in as `guacadmin` with the lab password from `deployment_info`. The cert encrypts the operator session only and is not part of the C2 path.
 
@@ -220,7 +121,7 @@ Success: the connection list shows Windows (RDP), SSH entries for Mythic, Sliver
 
 If it fails: give cloud-init the full 5 minutes. If the portal never loads, SSH to Guacamole and check `docker ps` for the `guacamole`, `postgres`, and `guacd` containers.
 
-### Step 13. Access the Windows operator
+### Step 6. Access the Windows operator
 
 In Guacamole, click Windows (RDP). Give it 10 to 30 seconds.
 
@@ -228,7 +129,7 @@ Success: the desktop loads with Chromium, VS Code, MobaXterm (redStack Lab sessi
 
 If it fails: wait five more minutes; Windows is the slowest host and the decrypted Administrator password is applied late in cloud-init. If RDP rejects the password, the credential baked into Guacamole is stale (the password was not ready when the portal built its connection), fix the key path per the Directory model section and redeploy, or edit the Windows (RDP) connection in Guacamole and paste the password from `deployment_info`.
 
-### Step 14. Confirm cross-host name resolution
+### Step 7. Confirm cross-host name resolution
 
 From a Windows PowerShell prompt:
 
@@ -247,13 +148,13 @@ If it fails: see the redStack wiki Troubleshooting page (Connectivity Checks). T
 
 ---
 
-## Phase 4: Bring up the tunnel and confirm reachability
+## Phase 3: Bring up the tunnel and confirm reachability
 
 The tunnel is a per-session manual start. Do it after the lab verifies. WireGuard between Guacamole and the redirector is already configured automatically during cloud-init.
 
-### Step 15. Get your .ovpn onto the redirector
+### Step 8. Get your .ovpn onto the redirector
 
-You already have your ShadowGate `.ovpn` on your laptop from pre-work (Step 4). Move it to the redirector in two hops: laptop to the Windows operator via GuacShare, then operator to the redirector via MobaXterm.
+You already have your ShadowGate `.ovpn` on your laptop from 0_PREREQ Step 4. Move it to the redirector in two hops: laptop to the Windows operator via GuacShare, then operator to the redirector via MobaXterm.
 
 1. Get the `.ovpn` onto the Windows operator. In the Guacamole Windows (RDP) session, open the sidebar (`Ctrl+Alt+Shift`), click Devices, and upload your `.ovpn`. It lands in the `GuacShare` folder, visible in This PC in File Explorer.
 2. In MobaXterm on the operator, open the **Apache Redirector (SSH)** bookmark under redStack Sessions. The left pane is the redirector's SFTP browser; it opens in `/home/admin`, so double-click into `vpn`.
@@ -263,7 +164,7 @@ Success: in the same MobaXterm terminal, `ls ~/vpn/` shows exactly one `.ovpn` f
 
 If it fails: the `vpn-tunnel` service picks the first file alphabetically if several exist, so keep only one in `~/vpn/`.
 
-### Step 16. Start the tunnel
+### Step 9. Start the tunnel
 
 ```bash
 sudo systemctl start vpn-tunnel && sudo journalctl -u vpn-tunnel -f | grep -m1 "Initialization Sequence Completed"
@@ -279,11 +180,11 @@ If it does not return within ~30 seconds, the handshake has not completed. Ctrl-
 systemctl status vpn-tunnel --no-pager -l
 ```
 
-If it fails: the service will not start if `~/vpn/` is empty (Step 15). The status command above shows auth or route errors inline.
+If it fails: the service will not start if `~/vpn/` is empty (Step 8). The status command above shows auth or route errors inline.
 
 Note: if you generate C2 agents, do it after the tunnel is up, not before. Beacons always call back to the redirector public Elastic IP (in `deployment_info.txt`), never the `tun0` IP: HSL does not route VPN client IPs back to the target, so a `tun0` callback never returns. Full callback config is in CONFIG and ATTACK.
 
-### Step 17. Confirm reachability to the target
+### Step 10. Confirm reachability to the target
 
 ShadowGate sits at `10.1.132.39` (hardcoded here; it does not change at DefCon. If your HSL portal ever shows a different address for your instance, substitute it throughout).
 
@@ -315,12 +216,12 @@ ping -c3 10.1.132.39
 
 Redirector to target, over OpenVPN.
 
-If the redirector cannot reach the target either, the OpenVPN tunnel or HSL routing is the problem, not the internal path. Recheck Steps 16 and 17, and give the target the HSL boot window (about 5 minutes) before assuming a routing fault.
+If the redirector cannot reach the target either, the OpenVPN tunnel or HSL routing is the problem, not the internal path. Recheck Steps 8 and 9, and give the target the HSL boot window (about 5 minutes) before assuming a routing fault.
 
 ---
 
 ## Where this hands off
 
-At the end of Phase 4 the lab is deployed, verified, tunneled, and ShadowGate is reachable. Next is CONFIG, which stands up the three C2 backends (Sliver, Mythic, Havoc) and confirms a test beacon from each. ATTACK follows with the ShadowGate chain. Teardown and cost live at the end of ATTACK, since the stack stays up across all three guides; do not destroy between them.
+At the end of Phase 3 the lab is deployed, verified, tunneled, and ShadowGate is reachable. Next is CONFIG, which stands up the three C2 backends (Sliver, Mythic, Havoc) and confirms a test beacon from each. ATTACK follows with the ShadowGate chain. Teardown and cost live at the end of ATTACK, since the stack stays up across all three guides; do not destroy between them.
 
 Note: the tunnel does not auto-start after a stop or reboot. If you stop the stack between sessions rather than destroying it, re-run `sudo systemctl start vpn-tunnel` on the redirector when you resume (WireGuard comes back automatically).
