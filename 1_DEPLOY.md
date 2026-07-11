@@ -186,21 +186,21 @@ Note: if you generate C2 agents, do it after the tunnel is up, not before. Beaco
 
 ### Step 10. Confirm reachability to the target
 
-ShadowGate sits at `10.1.132.39` (hardcoded here; it does not change at DefCon. If your HSL portal ever shows a different address for your instance, substitute it throughout).
+ShadowGate's address is per-instance and changes by location, so this guide writes it as `<ShadowGate IP>` rather than a fixed value. Read your assigned address off the HSL portal for your instance and substitute it everywhere `<ShadowGate IP>` appears below. Confirm it falls inside your `vpn_tunnel_cidrs` (`10.1.0.0/16` by default); if your address sits in a different range, change the CIDR to contain it.
 
 On the Windows workstation, open PowerShell (Start menu, type `powershell`, Enter). Run these one at a time, not as a block:
 
 ```powershell
-ping 10.1.132.39
+ping <ShadowGate IP>
 ```
 
 ```powershell
-Test-NetConnection 10.1.132.39 -Port 445
+Test-NetConnection <ShadowGate IP> -Port 445
 ```
 
 ShadowGate answers ICMP, so a ping reply confirms the path; `TcpTestSucceeded : True` on 445 confirms the service is reachable.
 
-Success: a reply from `10.1.132.39` confirms the full path is live: internal host to Guacamole (WireGuard) to redirector (OpenVPN) to the HSL target network. The lab is ready for the attack path.
+Success: a reply from `<ShadowGate IP>` confirms the full path is live: internal host to Guacamole (WireGuard) to redirector (OpenVPN) to the HSL target network. The lab is ready for the attack path.
 
 If it fails, isolate the break from the redirector (SSH in over Guacamole), one command at a time:
 
@@ -211,7 +211,7 @@ ip route
 Expect `10.1.0.0/16` (your target CIDR) via ... dev tun0.
 
 ```bash
-ping -c3 10.1.132.39
+ping -c3 <ShadowGate IP>
 ```
 
 Redirector to target, over OpenVPN.
