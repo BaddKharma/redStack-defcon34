@@ -250,4 +250,3 @@ Also disconnect the HSL side and confirm your CloudWatch billing alarm cleared.
 ## Where this ends
 
 ShadowGate under SYSTEM via a Sliver beacon that traversed the redirector, with Mythic and Havoc beacons staged through that same foothold and their SYSTEM step left to the attendee, then a clean teardown. That is the full boot-to-breach arc: DEPLOY stood up the platform, CONFIG proved all three callback paths, ATTACK used all three against a live target.
-                                                                              
