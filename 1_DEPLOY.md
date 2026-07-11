@@ -15,7 +15,7 @@ Work top to bottom. Every step lists the command, what success looks like, and w
 | Target        | ShadowGate (Hack Smarter Labs)                                                          |
 | Prerequisites | Complete 0_PREREQ first (~15 to 30 min per AWS account)                                 |
 | Deploy time   | ~5 to 10 min apply, plus ~8 to 12 min for the Windows password, plus ~5 min cloud-init  |
-| Cost          | ~$0.21 to $0.25/hr compute. Destroy when done                                           |
+| Cost          | ~$0.27/hr compute. Destroy when done                                                    |
 | Output        | `deployment_info.txt` in `redStack/` with every IP, password, and the C2 header token  |
 
 ---
@@ -53,7 +53,7 @@ Set the Tunneled Access block:
 ```hcl
 redirector_domain                    = ""     # no domain in tunneled mode
 enable_vpn_tunnel                    = true   # OpenVPN client + WireGuard routing
-enable_redirector_htaccess_filtering = false  # scanner/AV blocking is pointless inside an isolated lab
+enable_redirector_htaccess_filtering = false  # scanner/AV blocking has no effect inside an isolated lab
 ```
 
 Tunnel CIDRs. Route only the specific target subnet you need, never a supernet that contains the lab VPCs (10.50.0.0/16, 10.60.0.0/16). Guacamole's WireGuard `AllowedIPs` is taken directly from this list and its tunnel endpoint is the redirector's 10.60.x IP, so a broad range like 10.0.0.0/8 swallows that endpoint and deadlocks the tunnel. ShadowGate sits on 10.1.x:

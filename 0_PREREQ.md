@@ -26,7 +26,7 @@ Everything you need in place before the workshop. All of it is one-time per AWS 
 
 Use a dedicated, throwaway AWS account, not your production account. redStack stands up public-facing hosts and the AWS Acceptable Use Policy applies.
 
-If it fails: account signup needs a payment method even for lab use.
+Success: a dedicated AWS account with a payment method attached, not used for production workloads.
 
 ## Step 2. Install and configure the AWS CLI and Terraform
 

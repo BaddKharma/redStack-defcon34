@@ -31,7 +31,7 @@ So: you push in over the tunnel, the beacon comes back over the public internet 
 
 Confirm before starting. If any fails, fix it in DEPLOY or CONFIG before continuing.
 
-Tunnel up and target reachable (from DEPLOY Phase 4). From the redirector (Guacamole > Redirector SSH):
+Tunnel up and target reachable (from DEPLOY Phase 3). From the redirector (Guacamole > Redirector SSH):
 
 ```bash
 ping -c3 10.1.132.39
@@ -73,7 +73,7 @@ echo '10.1.132.39  DC01.shadow.gate shadow.gate DC01' | sudo tee -a /etc/hosts
 
 Success: nmap returns the domain controller's services (53, 88, 389, 445, 636, 5985 and the AD CS HTTP endpoint). The tunnel is carrying operator traffic.
 
-If it fails: nmap timing out means the tunnel is down. Recheck DEPLOY Step 17 (reachability to the target) and that `10.1.132.39` falls inside your `vpn_tunnel_cidrs`.
+If it fails: nmap timing out means the tunnel is down. Recheck DEPLOY Step 10 (reachability to the target) and that `10.1.132.39` falls inside your `vpn_tunnel_cidrs`.
 
 ---
 

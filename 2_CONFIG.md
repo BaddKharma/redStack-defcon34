@@ -6,7 +6,7 @@ Order is Sliver, then Mythic, then Havoc. Each ends with a beacon that stays run
 
 | At a glance   |                                                                     |
 | ------------- | ------------------------------------------------------------------- |
-| Depends on    | DEPLOY complete through Phase 4 (tunnel up, target reachable)        |
+| Depends on    | DEPLOY complete through Phase 3 (tunnel up, target reachable)        |
 | Test platform | Windows operator workstation (via Guacamole RDP)                    |
 | Callback host | Redirector public Elastic IP, 443/HTTPS for all three C2s (see Callback architecture)  |
 | C2 order      | Sliver, Mythic, Havoc                                                |
@@ -146,7 +146,7 @@ On the `http` profile, set only these fields, in the order they appear in the UI
 | Field             | Value                                                                             |
 | ----------------- | --------------------------------------------------------------------------------- |
 | callback_host     | `https://<REDIR_PUBLIC_IP>`                                                       |
-| callback_interval | `2` (seconds)                                                                     |
+| callback_interval | `2` (seconds; fast cadence for demo visibility -- use 60+ for real ops)           |
 | callback_jitter   | `20` (percent)                                                                    |
 | callback_port     | `443`                                                                             |
 | headers           | Add a new header: KEY `X-Request-ID`, VALUE `<TOKEN>`. Then delete the default `Host` header |
@@ -182,11 +182,11 @@ If it fails: see the wiki Mythic > Troubleshooting > "Callback never arrives" (l
 
 ## Phase C: Havoc
 
-Havoc compiles from source once per deploy (~9 min). If you did not kick off the build in DEPLOY Step 10, start it now and set up nothing else until it finishes. Havoc's `/edge/cache/assets/` prefix is preserved (not stripped) by the redirector, so the listener URI must carry the full prefix.
+Havoc compiles from source once per deploy (~9 min). If you did not kick off the build in DEPLOY Step 3, start it now and set up nothing else until it finishes. Havoc's `/edge/cache/assets/` prefix is preserved (not stripped) by the redirector, so the listener URI must carry the full prefix.
 
 ### Step C1. Build (once per deploy) and verify the teamserver
 
-If you did not already build in DEPLOY Step 10, run the build from a terminal on the Havoc Desktop (Guacamole > Havoc Desktop VNC), not over SSH, so the ~9 min compile cannot hang an SSH session:
+If you did not already build in DEPLOY Step 3, run the build from a terminal on the Havoc Desktop (Guacamole > Havoc Desktop VNC), not over SSH, so the ~9 min compile cannot hang an SSH session:
 
 ```bash
 ~/build_havoc.sh

@@ -68,7 +68,7 @@ Slides will be posted here.
 
 ## Before You Arrive
 
-Full prerequisites and setup steps are in the deployment guide ([DEPLOY.md](DEPLOY.md), Phase 1). In short, arrive with:
+Full prerequisites and setup steps are in the deployment guide ([1_DEPLOY.md](1_DEPLOY.md), Phase 1). In short, arrive with:
 
 - A dedicated, throwaway AWS account
 - AWS CLI installed and configured
@@ -86,9 +86,9 @@ Budget roughly $2 to $3 of AWS spend for the session. The full stack runs about 
 
 ## Instructors
 
-**Michael Ortiz** is a Red Team Engineer and SME, U.S. Department of State Red Cell. Founder of devZero Security (SDVOSB, offensive security and security engineering) and developer of redStack. Marine Corps veteran. OSEP, OSCP, CRTO, CRTL. Speaker profile: https://sessionize.com/mike-ortiz
+**Michael Ortiz** is a Red Team Engineer and SME, U.S. Department of State Red Cell. Founder of devZero Security LLC (SDVOSB, offensive security and security engineering) and developer of redStack. Marine Corps veteran. OSEP, OSCP, CRTO, CRTL. Speaker profile: https://sessionize.com/mike-ortiz
 
-**Michael Kim** is a Senior Consultant in Offensive Security on Palo Alto Networks Unit 42's Proactive Services team, leading red team operations, adversary simulations, and penetration tests for global clients. He moved into cybersecurity during the pandemic and rose from boot camp graduate to senior consultant, bringing a multicultural background across seven countries to his approach to offensive work. Speaker profile: https://sessionize.com/michael-kim
+**Michael Kim** is a Senior Consultant in Offensive Security on Palo Alto Networks Unit 42's Proactive Services team, leading red team operations, adversary simulations, and penetration tests for global clients. He moved into cybersecurity during the pandemic and rose from boot camp graduate to senior consultant, bringing a multicultural background across seven countries to his approach to offensive security. Speaker profile: https://sessionize.com/michael-kim
 
 ---
 
