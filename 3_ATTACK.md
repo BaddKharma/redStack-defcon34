@@ -79,18 +79,18 @@ If it fails: nmap timing out means the tunnel is down. Recheck DEPLOY Step 10 (r
 
 ## Phase 2: Domain compromise (whitecarded)
 
-The black-box path from zero credentials to Domain Admin is about 40 minutes of AD tradecraft, and it is not what this workshop teaches, so it is whitecarded. The full sequence is in the box creator's walkthrough (https://notes.rosskeddy.ca/cheatsheet/writeups/hacksmarter/shadowgate) and 0xb0b's writeup (CC BY 4.0). Attendees are handed its endpoint:
+The black-box path from zero credentials to Domain Admin is about 40 minutes of AD tradecraft, and it is not what this workshop teaches, so it is whitecarded. The full sequence is in the box creator's walkthrough (https://notes.rosskeddy.ca/cheatsheet/writeups/hacksmarter/shadowgate). You start from its endpoint:
 
 - Target: `DC01.shadow.gate` at `<ShadowGate IP>`
 - `Administrator` NT hash: `4366ec0f86e29be2a4a5e87a1ba922ec`
 
-On a domain controller, Domain Admin is local admin, which is what makes the delivery and SYSTEM escalation below work. In one line, the whitecarded chain is: anonymous SMB user enumeration, AS-REP roast of `jtrueblood`, shadow-credential takeover of `bbrown` through a GenericWrite, an ESC8 NTLM relay to AD CS Web Enrollment coerced with PetitPotam to mint a `DC01$` certificate, then DCSync to recover the `Administrator` hash handed to you above.
+On a domain controller, Domain Admin is local admin, which is what makes the delivery and SYSTEM escalation below work. In one line, the whitecarded chain is: anonymous SMB user enumeration, AS-REP roast of `jtrueblood`, shadow-credential takeover of `bbrown` through a GenericWrite, an ESC8 NTLM relay to AD CS Web Enrollment coerced with PetitPotam to mint a `DC01$` certificate, then DCSync to recover the `Administrator` hash shown above.
 
 ---
 
 ## Phase 3: Deliver and land the Sliver beacon
 
-Four commands take you from the whitecarded hash to a beacon on the DC. The beacon calls back to the redirector public EIP over 443, the same path the CONFIG heartbeat proved. You reuse the Sliver implant already built in CONFIG (Step A3, `/tmp/sysProxy.exe` on the Sliver host, same `redstack` profile and callback), so there is no regenerate step here.
+Four commands take you from the whitecarded hash to a beacon on the DC. It calls back to the redirector public EIP over 443, the same path CONFIG proved with the heartbeat. Reuse the Sliver implant from CONFIG Step A3 (`/tmp/sysProxy.exe` on the Sliver host, same `redstack` profile and callback); no regenerate step here.
 
 1. Pull the CONFIG implant to Kali, where the delivery tooling runs (lab password from `deployment_info`):
 
@@ -250,3 +250,4 @@ Also disconnect the HSL side and confirm your CloudWatch billing alarm cleared.
 ## Where this ends
 
 ShadowGate under SYSTEM via a Sliver beacon that traversed the redirector, with Mythic and Havoc beacons staged through that same foothold and their SYSTEM step left to the attendee, then a clean teardown. That is the full boot-to-breach arc: DEPLOY stood up the platform, CONFIG proved all three callback paths, ATTACK used all three against a live target.
+                                                                              
