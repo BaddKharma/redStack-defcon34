@@ -57,7 +57,15 @@ Success: a dedicated AWS account with a payment method attached, not used for pr
 | Linux (any) | `curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install` |
 | Windows | Download and run the MSI from https://aws.amazon.com/cli/ |
 
-**Create an IAM user and attach permissions.** For step-by-step instructions (both `AdministratorAccess` and least-privilege options), see [Step 2 on the Prerequisites wiki page](https://github.com/BaddKharma/redStack/wiki/02.-Prerequisites#-step-2-aws-iam-permissions).
+**Create an IAM user and attach permissions.** Skip this if you are using the root account or already have credentials configured. For the least-privilege policy option, see [Step 2 on the Prerequisites wiki page](https://github.com/BaddKharma/redStack/wiki/02.-Prerequisites#-step-2-aws-iam-permissions).
+
+1. IAM Console > Users > Create user
+2. Username: `redS-operator`
+3. Permissions > Attach policies directly > search `AdministratorAccess`
+4. Check `AdministratorAccess` > Next > Create user
+5. Open the new user > Security credentials > Create access key
+6. Select Command Line Interface (CLI) > acknowledge > Next
+7. Copy the Access Key ID and Secret Access Key (the secret is shown only once)
 
 **Configure the AWS CLI** with the IAM user's access key:
 
