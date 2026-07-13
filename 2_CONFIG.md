@@ -206,7 +206,7 @@ Havoc compiles from source once per deploy (~9 min). If you did not kick off the
 
 ### Step C1. Build (once per deploy) and verify the teamserver
 
-If you did not already build in DEPLOY Step 3, run the build from a terminal on the Havoc Desktop (Guacamole > Havoc Desktop VNC), not over SSH, so the ~9 min compile cannot hang an SSH session:
+If you did not already build in DEPLOY Step 3, run the build from a terminal on the Havoc (Guacamole > Havoc Desktop VNC), so the ~9 min compile does not hang an SSH session:
 
 ```bash
 ~/build_havoc.sh
