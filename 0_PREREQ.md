@@ -2,6 +2,8 @@
 
 Everything you need in place before the workshop. All of it is one-time per AWS account, so do it ahead of the session; it should not eat into the workshop clock. When every box below is checked, you are ready for 1_DEPLOY.
 
+Run the deploy from your host machine or a dedicated VM with the AWS CLI and Terraform installed, not from inside the lab itself. The Terraform output writes `deployment_info.txt` to `redStack/` and you will need it open on the same machine you are deploying from.
+
 | At a glance |                                            |
 | ----------- | ------------------------------------------ |
 | When        | Before the session                         |
@@ -30,7 +32,7 @@ Success: a dedicated AWS account with a payment method attached, not used for pr
 
 ## Step 2. Install and configure the AWS CLI and Terraform
 
-Install both, then configure AWS credentials for an IAM user with `AdministratorAccess` on the throwaway account (`aws configure`, region `us-east-1`, output `json`).
+Install both, then configure AWS credentials for an IAM user with `AdministratorAccess` on the throwaway account (`aws configure`, region `us-east-1`, output `json`). For step-by-step IAM user creation, see the [IAM User Setup page on the redStack wiki](<WIKI_IAM_URL>).
 
 Success:
 
@@ -38,7 +40,7 @@ Success:
 aws sts get-caller-identity
 ```
 
-Returns your Account, Arn, and UserId.
+Returns your Account, ARN, and UserId.
 
 ```bash
 terraform --version
@@ -53,11 +55,10 @@ If it fails: `InvalidClientTokenId` or `SignatureDoesNotMatch` means the keys we
 One-time, no charge, per AWS account. Skip it and the apply fails on the Kali AMI with `OptInRequired`.
 
 1. Visit https://aws.amazon.com/marketplace/pp/prodview-fznsw3f7mq7to signed in to the same account.
-2. Continue to Subscribe, then Accept Terms.
+2. Click on `View Purchase Options` 
+3. Scroll down then click on `Subscribe`, then Accept Terms.
 
 Success: the Marketplace page shows the subscription active.
-
-If it fails: if apply later errors `OptInRequired`, finish the subscription and re-run apply. No state cleanup needed.
 
 ## Step 4. Hack Smarter Labs access and .ovpn
 
@@ -65,7 +66,7 @@ Have a Hack Smarter Labs account with an active subscription covering the target
 
 ShadowGate: https://www.hacksmarter.org/courses/e7586073-d447-41db-8f8e-6bd22576556d
 
-Success: you have a `.ovpn` file saved locally and the ShadowGate machine launches in the HSL portal.
+Success: you have a `.ovpn` file saved locally (keep it somewhere safe since you will need this later) and the ShadowGate machine launches in the HSL portal.
 
 If it fails: the target IP shown at launch is inside the range and does not change your VPN config. The `.ovpn` pulls its routes from HSL at connect time.
 
@@ -105,7 +106,13 @@ ls -l rs-rsa-key.pem
 aws ec2 describe-key-pairs --key-names rs-rsa-key
 ```
 
-If it fails: `InvalidKeyPair.Duplicate` means the key name already exists in AWS, either reuse the existing `.pem` or delete the AWS key (`aws ec2 delete-key-pair --key-name rs-rsa-key`) and recreate. Confirm the file is `redStack/rs-rsa-key.pem`, not inside `terraform/`. It is already covered by `.gitignore`.
+If it fails: `InvalidKeyPair.Duplicate` means `rs-rsa-key` already exists in AWS. Three options:
+
+- **Reuse**: if you still have the original `.pem`, copy it to `redStack/rs-rsa-key.pem` and skip the create command.
+- **Import**: if you have a local SSH key pair you want to use instead, import its public key: `aws ec2 import-key-pair --key-name rs-rsa-key --public-key-material fileb://~/.ssh/id_rsa.pub` and place the matching private key at `redStack/rs-rsa-key.pem`.
+- **Delete and recreate**: `aws ec2 delete-key-pair --key-name rs-rsa-key`, then re-run the create command above.
+
+Confirm the file lands at `redStack/rs-rsa-key.pem`, not inside `terraform/`. It is already covered by `.gitignore`.
 
 ## Step 7. Record your public IP
 

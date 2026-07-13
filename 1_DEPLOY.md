@@ -87,12 +87,6 @@ Type `yes`. Apply runs about 5 to 10 minutes. Expect the Windows instance to sit
 
 Cloud-init keeps running after apply returns. Linux hosts and Guacamole come up shortly after; the Windows workstation and the Mythic UI need roughly another 10 minutes.
 
-Kick off the Havoc build now so it compiles while the rest of the stack finishes (~1 GB download, ~9 min). Run it from the Havoc desktop, not over SSH, so the long build cannot tie up or hang an SSH session: once Guacamole is up (a couple minutes after apply), open Guacamole > Havoc Desktop (VNC), open a terminal, and run:
-
-```bash
-~/build_havoc.sh
-```
-
 Success: `Apply complete! Resources: NN added, 0 changed, 0 destroyed.`
 
 If it fails: `OptInRequired`, finish the Kali subscription (0_PREREQ Step 3) and re-run, no cleanup needed. If it stops on the Windows postcondition ("Windows password_data was not available before timeouts.create expired"), the AMI ran long, re-run `terraform apply` and it picks up the now-available password.
@@ -103,7 +97,7 @@ If it fails: `OptInRequired`, finish the Kali subscription (0_PREREQ Step 3) and
 terraform output deployment_info
 ```
 
-This holds the lab password, the Windows Administrator password, the redirector Elastic IP, and the `X-Request-ID` token. `deployment_info.txt` is also written to `redStack/`. Keep it open for the session.
+This holds the lab password, the Windows Administrator password, the redirector Elastic IP, and the `X-Request-ID` token. `deployment_info.txt` is also written to `redStack/`. Keep it open for the session as you will need to refer to it throughout the workshop.
 
 Success: every host block is populated, and the Windows block shows a real password rather than "(not yet available)."
 
@@ -120,6 +114,24 @@ Open `https://<GUAC_PUBLIC_IP>/guacamole`, accept the self-signed cert warning, 
 Success: the connection list shows Windows (RDP), SSH entries for Mythic, Sliver, Havoc, Redirector, Guacamole, and Kali, plus Havoc Desktop (VNC).
 
 If it fails: give cloud-init the full 5 minutes. If the portal never loads, SSH to Guacamole and check `docker ps` for the `guacamole`, `postgres`, and `guacd` containers.
+
+### Step 5a. Kick off the Havoc build
+
+Havoc compiles from source once per deploy (~1 GB download, ~9 min). Start it now while the Windows workstation finishes booting so the two overlap. Run it from the Havoc desktop, not over SSH, so the long compile cannot hang an SSH session:
+
+In Guacamole, open **Havoc Desktop (VNC)**, open a terminal at the desktop, and run:
+
+```bash
+~/build_havoc.sh
+```
+
+Optionally watch progress:
+
+```bash
+tail -f ~/havoc_build.log
+```
+
+The build ends by starting the teamserver. You will confirm it in CONFIG Phase C. Continue with Step 6 while it runs.
 
 ### Step 6. Access the Windows operator
 
@@ -157,8 +169,10 @@ The tunnel is a per-session manual start. Do it after the lab verifies. WireGuar
 You already have your ShadowGate `.ovpn` on your laptop from 0_PREREQ Step 4. Move it to the redirector in two hops: laptop to the Windows operator via GuacShare, then operator to the redirector via MobaXterm.
 
 1. Get the `.ovpn` onto the Windows operator. In the Guacamole Windows (RDP) session, open the sidebar (`Ctrl+Alt+Shift`), click Devices, and upload your `.ovpn`. It lands in the `GuacShare` folder, visible in This PC in File Explorer.
-2. In MobaXterm on the operator, open the **Apache Redirector (SSH)** bookmark under redStack Sessions. The left pane is the redirector's SFTP browser; it opens in `/home/admin`, so double-click into `vpn`.
-3. With the `vpn` folder open in the SFTP pane, click the "Upload to current folder" button in the SFTP toolbar and pick the `.ovpn` from `GuacShare`.
+2. In MobaXterm on the operator, open the **Redirector (SSH)** bookmark under the redStack Lab session folder. MobaXterm opens two panes: a terminal session on the right (you are logged in as `admin@redirector`) and an SFTP browser on the left side pane. The SFTP pane opens in `/home/admin` by default — double-click into `vpn` to navigate there.
+3. With `vpn` open in the SFTP pane, click the "Upload to current folder" button in the SFTP toolbar and pick the `.ovpn` from `GuacShare`.
+
+Keep this MobaXterm terminal open. Step 9 commands run here, in this same redirector session.
 
 Success: in the same MobaXterm terminal, `ls ~/vpn/` shows exactly one `.ovpn` file.
 
