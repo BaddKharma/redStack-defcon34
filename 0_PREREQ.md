@@ -30,7 +30,7 @@ Use a dedicated, throwaway AWS account, not your production account. redStack st
 
 Success: a dedicated AWS account with a payment method attached, not used for production workloads.
 
-## Step 2. Install and configure the AWS CLI and Terraform
+## Step 2. Install and configure the Git, Terraform, and AWS CLI
 
 **Install Git:**
 
@@ -40,6 +40,14 @@ Success: a dedicated AWS account with a payment method attached, not used for pr
 | Linux (Ubuntu/Debian) | `sudo apt install git` |
 | Windows | Download and run the installer from https://git-scm.com/download/win |
 
+**Install Terraform:**
+
+| Platform | Command |
+| -------- | ------- |
+| macOS | `brew install terraform` |
+| Linux (Ubuntu/Debian) | See https://developer.hashicorp.com/terraform/install |
+| Windows | `choco install terraform` or download from https://developer.hashicorp.com/terraform/install |
+
 **Install AWS CLI:**
 
 | Platform | Command |
@@ -48,14 +56,6 @@ Success: a dedicated AWS account with a payment method attached, not used for pr
 | Linux (Ubuntu/Debian) | `sudo apt install awscli` |
 | Linux (any) | `curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install` |
 | Windows | Download and run the MSI from https://aws.amazon.com/cli/ |
-
-**Install Terraform:**
-
-| Platform | Command |
-| -------- | ------- |
-| macOS | `brew install terraform` |
-| Linux (Ubuntu/Debian) | See https://developer.hashicorp.com/terraform/install |
-| Windows | `choco install terraform` or download from https://developer.hashicorp.com/terraform/install |
 
 **Create an IAM user and attach permissions.** For step-by-step instructions (both `AdministratorAccess` and least-privilege options), see [Step 2 on the Prerequisites wiki page](https://github.com/BaddKharma/redStack/wiki/02.-Prerequisites#-step-2-aws-iam-permissions).
 
