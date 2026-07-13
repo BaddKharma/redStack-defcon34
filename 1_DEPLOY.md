@@ -125,10 +125,10 @@ In Guacamole, open **Havoc Desktop (VNC)**, open a terminal at the desktop, and 
 ~/build_havoc.sh
 ```
 
-Optionally watch progress:
+Build log is captured and outputted here:
 
 ```bash
-tail -f ~/havoc_build.log
+nano ~/havoc_build.log
 ```
 
 The build ends by starting the teamserver. You will confirm it in CONFIG Phase C. Continue with Step 6 while it runs.
@@ -141,7 +141,7 @@ Success: the desktop loads with Chromium, VS Code, MobaXterm (redStack Lab sessi
 
 If it fails: wait five more minutes; Windows is the slowest host and the decrypted Administrator password is applied late in cloud-init. If RDP rejects the password, the credential baked into Guacamole is stale (the password was not ready when the portal built its connection), fix the key path per the Directory model section and redeploy, or edit the Windows (RDP) connection in Guacamole and paste the password from `deployment_info`.
 
-### Step 7. Confirm cross-host name resolution
+### Step 7. Optional: Confirm cross-host name resolution
 
 From a Windows PowerShell prompt:
 
@@ -169,8 +169,12 @@ The tunnel is a per-session manual start. Do it after the lab verifies. WireGuar
 You already have your ShadowGate `.ovpn` on your laptop from 0_PREREQ Step 4. Move it to the redirector in two hops: laptop to the Windows operator via GuacShare, then operator to the redirector via MobaXterm.
 
 1. Get the `.ovpn` onto the Windows operator. In the Guacamole Windows (RDP) session, open the sidebar (`Ctrl+Alt+Shift`), click Devices, and upload your `.ovpn`. It lands in the `GuacShare` folder, visible in This PC in File Explorer.
-2. In MobaXterm on the operator, open the **Redirector (SSH)** bookmark under the redStack Lab session folder. MobaXterm opens two panes: a terminal session on the right (you are logged in as `admin@redirector`) and an SFTP browser on the left side pane. The SFTP pane opens in `/home/admin` by default — double-click into `vpn` to navigate there.
-3. With `vpn` open in the SFTP pane, click the "Upload to current folder" button in the SFTP toolbar and pick the `.ovpn` from `GuacShare`.
+2. In MobaXterm on the operator, open the **Apache Redirector (SSH)** bookmark under the redStack Lab session folder. 
+	1. Accept the connection to the redirector
+	2. Enter the admin password from the `deployment_info.txt`
+		1. Optional: Choose to allow it to save your password, and enter a Master Password for the MobaXterm password vault
+3. MobaXterm opens two panes: a terminal session on the right (you are logged in as `admin@redirector`) and an SFTP browser on the left side pane. The SFTP pane opens in `/home/admin` by default. Double-click into the `vpn` folder to navigate there.
+4. With `vpn` open in the SFTP pane, click the "Upload to current folder" button in the SFTP toolbar and pick the `.ovpn` from `This PC>GuacShare`.
 
 Keep this MobaXterm terminal open. Step 9 commands run here, in this same redirector session.
 
@@ -179,6 +183,8 @@ Success: in the same MobaXterm terminal, `ls ~/vpn/` shows exactly one `.ovpn` f
 If it fails: the `vpn-tunnel` service picks the first file alphabetically if several exist, so keep only one in `~/vpn/`.
 
 ### Step 9. Start the tunnel
+
+From redirector SSH session:
 
 ```bash
 sudo systemctl start vpn-tunnel && sudo journalctl -u vpn-tunnel -f | grep -m1 "Initialization Sequence Completed"

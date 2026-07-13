@@ -209,7 +209,7 @@ If it fails: if the new session never appears, re-confirm the task path echoed w
 
 ---
 
-## Phase 6: The SYSTEM exercise
+## BONUS ROUND: The SYSTEM exercise
 
 SYSTEM on `DC01` via Sliver is done: Phase 5 took the Administrator beacon to SYSTEM with a scheduled task. Now do the same in the other two frameworks.
 
