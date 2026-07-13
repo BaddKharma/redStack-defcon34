@@ -16,7 +16,7 @@
 
 redStack is an open source AWS and Terraform project that stands up a full red team operator stack on demand: three C2 frameworks (Mythic, Sliver, Havoc), a Kali operator, a Windows operator, an Apache redirector with header and URI gating, and a Guacamole portal fronting the environment. One `terraform apply` brings it all up.
 
-This is the landing page for the DEF CON 34 workshop. The three workshop guides, slides, and supporting docs live here. The platform itself lives in the redStack repo linked below.
+This is the landing page for the DEF CON 34 workshop. The four workshop guides, slides, and supporting docs live here. The platform itself lives in the redStack repo linked below.
 
 ---
 
@@ -40,7 +40,7 @@ This is the landing page for the DEF CON 34 workshop. The three workshop guides,
 | Noob Village | Saturday, Aug 8, 1:00-2:50pm |
 | Adversary Village | Sunday, Aug 9, 10:00-11:55am |
 
-You deploy the stack yourself, walk the operator portal, stand up your C2s, and follow a full attack chain against a live range, landing a Sliver beacon and escalating to full control. The session closes with a clean teardown and cost management.
+You deploy the stack yourself, walk the operator portal, stand up your C2s, and follow a full attack chain against a live range, landing a Sliver beacon, escalating to SYSTEM, and also landing in beacons for Mythic and Havoc. 
 
 ---
 
@@ -60,7 +60,7 @@ The workshop runs against the live redStack project.
 - redStack repo: https://github.com/BaddKharma/redStack
 - redStack wiki: https://github.com/BaddKharma/redStack/wiki
 
-The wiki is the public technical source of truth for the platform, including architecture and the OpenVPN tunnel setup (page 15). The three guides above are the operational runbooks for this workshop.
+The wiki is the public technical source of truth for the platform, including architecture and the OpenVPN tunnel setup (page 15). The four guides above are the operational runbooks for this workshop.
 
 Slides will be posted here.
 
@@ -86,9 +86,9 @@ Budget roughly $2 to $3 of AWS spend for the session. The full stack runs about 
 
 ## Instructors
 
-**Michael Ortiz** is a Red Team Engineer and SME, U.S. Department of State Red Cell. Founder of devZero Security LLC (SDVOSB, offensive security and security engineering) and developer of redStack. Marine Corps veteran. OSEP, OSCP, CRTO, CRTL. Speaker profile: https://sessionize.com/mike-ortiz
+**Michael Ortiz**: https://sessionize.com/mike-ortiz
 
-**Michael Kim** is a Senior Consultant in Offensive Security on Palo Alto Networks Unit 42's Proactive Services team, leading red team operations, adversary simulations, and penetration tests for global clients. He moved into cybersecurity during the pandemic and rose from boot camp graduate to senior consultant, bringing a multicultural background across seven countries to his approach to offensive security. Speaker profile: https://sessionize.com/michael-kim
+**Michael Kim**: https://sessionize.com/michael-kim
 
 ---
 
