@@ -60,9 +60,9 @@ The workshop runs against the live redStack project.
 - redStack repo: https://github.com/BaddKharma/redStack
 - redStack wiki: https://github.com/BaddKharma/redStack/wiki
 
-The wiki is the public technical source of truth for the platform, including architecture and the OpenVPN tunnel setup (page 15). The four guides above are the operational runbooks for this workshop.
+The wiki is the public technical source of truth for the platform, including architecture and the OpenVPN tunnel setup. The four guides above are the operational runbooks for this workshop.
 
-Slides will be posted here.
+Slides will also be posted here.
 
 ---
 
