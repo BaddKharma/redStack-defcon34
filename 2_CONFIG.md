@@ -218,7 +218,7 @@ Optionally watch the log for `Havoc Build Complete`:
 tail -f ~/havoc_build.log
 ```
 
-Then confirm the teamserver over Guacamole > Havoc (SSH):
+Then confirm the teamserver is up and running if the build terminal was closed:
 
 ```bash
 sudo systemctl status havoc
@@ -231,7 +231,7 @@ If it fails: `grep -E 'error|fail|FAIL' ~/havoc_build.log`. Out-of-memory on the
 
 ### Step C2. Connect Katana
 
-Guacamole > Havoc Desktop (VNC). Double-click Havoc Client; on first launch click Mark Executable, then double-click again. Login dialog:
+Guacamole > Havoc Desktop (VNC). Double-click Havoc Client; on first launch click `Mark Executable`. Login variables:
 
 | Field    | Value                     |
 | -------- | ------------------------- |
@@ -249,17 +249,17 @@ If it fails: confirm the teamserver is listening (Step C1) and the password matc
 
 Menu: View > Listeners > Add.
 
-| Field       | Value                                                   |
-| ----------- | ------------------------------------------------------- |
-| Name        | `https`                                                 |
-| Payload     | `Https`                                                 |
-| Hosts       | `<REDIR_PUBLIC_IP>`, then Add                           |
-| Host (Bind) | `0.0.0.0`                                               |
-| PortBind    | `443`                                                   |
-| PortConn    | `443`                                                   |
-| Headers     | `X-Request-ID: <TOKEN>`, then Add                       |
-| Uris        | `/edge/cache/assets/update`, then Add (keep the prefix) |
-| UserAgent   | leave default                                           |
+| Field       | Value                                                                                                    |
+| ----------- | -------------------------------------------------------------------------------------------------------- |
+| Name        | `https`                                                                                                  |
+| Payload     | `Https`                                                                                                  |
+| Hosts       | `<REDIR_PUBLIC_IP>`, then Add                                                                            |
+| Host (Bind) | `0.0.0.0`                                                                                                |
+| PortBind    | `443`                                                                                                    |
+| PortConn    | `443`                                                                                                    |
+| Headers     | `X-Request-ID: <TOKEN>`, then Add<br>**NOTE: Replace `<TOKEN>` with the value from deployment_info.txt** |
+| Uris        | `/edge/cache/assets/update`, then Add.                                                                   |
+| UserAgent   | leave default                                                                                            |
 
 `Payload: Https` makes the teamserver stand up its own TLS listener on 443 (the teamserver has `CAP_NET_BIND_SERVICE`, so binding 443 as `admin` works). The redirector re-encrypts to it. Enter the header key as the full `X-Request-ID`, not just `ID`.
 
