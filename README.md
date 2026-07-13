@@ -95,3 +95,5 @@ Budget roughly $2 to $3 of AWS spend for the session. The full stack runs about 
 ## Acknowledgments
 
 Thanks to Tyler Ramsby at Hack Smarter Labs for authorizing the range for this workshop. The live attack portion runs against a Hack Smarter Labs range with their permission, on per-user instanced connections.
+
+Thanks to P3n3tr@t0r, Cr4ck3rj4ck5, and cyberbandit74 for testing the workshop and providing feedback that shaped these guides.
