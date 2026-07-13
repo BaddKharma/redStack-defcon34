@@ -32,7 +32,47 @@ Success: a dedicated AWS account with a payment method attached, not used for pr
 
 ## Step 2. Install and configure the AWS CLI and Terraform
 
-Install both, then configure AWS credentials for an IAM user with `AdministratorAccess` on the throwaway account (`aws configure`, region `us-east-1`, output `json`). For step-by-step IAM user creation, see [Step 2 on the Prerequisites wiki page](https://github.com/BaddKharma/redStack/wiki/02.-Prerequisites).
+**Install Git:**
+
+| Platform | Command |
+| -------- | ------- |
+| macOS | `brew install git` or install Xcode Command Line Tools: `xcode-select --install` |
+| Linux (Ubuntu/Debian) | `sudo apt install git` |
+| Windows | Download and run the installer from https://git-scm.com/download/win |
+
+**Install AWS CLI:**
+
+| Platform | Command |
+| -------- | ------- |
+| macOS | `brew install awscli` |
+| Linux (Ubuntu/Debian) | `sudo apt install awscli` |
+| Linux (any) | `curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && unzip awscliv2.zip && sudo ./aws/install` |
+| Windows | Download and run the MSI from https://aws.amazon.com/cli/ |
+
+**Install Terraform:**
+
+| Platform | Command |
+| -------- | ------- |
+| macOS | `brew install terraform` |
+| Linux (Ubuntu/Debian) | See https://developer.hashicorp.com/terraform/install |
+| Windows | `choco install terraform` or download from https://developer.hashicorp.com/terraform/install |
+
+**Create an IAM user and attach permissions.** For step-by-step instructions (both `AdministratorAccess` and least-privilege options), see [Step 2 on the Prerequisites wiki page](https://github.com/BaddKharma/redStack/wiki/02.-Prerequisites#-step-2-aws-iam-permissions).
+
+**Configure the AWS CLI** with the IAM user's access key:
+
+```bash
+aws configure
+```
+
+When prompted:
+
+| Prompt | Value |
+| ------ | ----- |
+| AWS Access Key ID | From IAM > your user > Security credentials |
+| AWS Secret Access Key | Shown once at key creation; if lost, delete and recreate |
+| Default region name | `us-east-1` (must match `aws_region` in `terraform.tfvars`) |
+| Default output format | `json` |
 
 Success:
 
@@ -48,7 +88,7 @@ terraform --version
 
 Reports v1.0 or higher.
 
-If it fails: `InvalidClientTokenId` or `SignatureDoesNotMatch` means the keys were mistyped, re-run `aws configure`. Terraform below 1.0, upgrade. The region here must match `aws_region` in `terraform.tfvars`.
+If it fails: `InvalidClientTokenId` or `SignatureDoesNotMatch` means the keys were mistyped; re-run `aws configure`. Terraform below 1.0, upgrade. The region here must match `aws_region` in `terraform.tfvars`.
 
 ## Step 3. Accept the Kali Marketplace EULA
 
