@@ -32,7 +32,7 @@ Success: a dedicated AWS account with a payment method attached, not used for pr
 
 ## Step 2. Install and configure the AWS CLI and Terraform
 
-Install both, then configure AWS credentials for an IAM user with `AdministratorAccess` on the throwaway account (`aws configure`, region `us-east-1`, output `json`). For step-by-step IAM user creation, see the [IAM User Setup page on the redStack wiki](<WIKI_IAM_URL>).
+Install both, then configure AWS credentials for an IAM user with `AdministratorAccess` on the throwaway account (`aws configure`, region `us-east-1`, output `json`). For step-by-step IAM user creation, see [Step 2 on the Prerequisites wiki page](https://github.com/BaddKharma/redStack/wiki/02.-Prerequisites).
 
 Success:
 
