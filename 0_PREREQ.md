@@ -126,7 +126,8 @@ cd redStack
 git checkout dev
 ```
 
-The workshop runs off the `dev` branch for now. The AdaptixC2 backend lives on `dev` until it merges to `main`, so `main` still ships Havoc; stay on `dev` until we announce the merge.
+> [!NOTE]
+> The workshop runs off the `dev` branch for now. The AdaptixC2 backend lives on `dev` until it merges to `main`, so `main` still ships Havoc; stay on `dev` until we announce the merge.
 
 Success: you are inside `redStack/` on the `dev` branch (`git branch --show-current` prints `dev`) and see `terraform/` with `terraform.tfvars.example` in it.
 
@@ -134,7 +135,8 @@ If it fails: no `git`, install it. Corporate proxy blocking GitHub, clone over S
 
 ## Step 6. Create the SSH key pair (right after clone, lands in `redStack/`)
 
-Create the key from inside `redStack/` so the `.pem` lands in the repo root next to `terraform/`. This is the file Terraform uses to decrypt the Windows password, and keeping it here is what makes `ssh_private_key_path = "../rs-rsa-key.pem"` resolve correctly.
+> [!IMPORTANT]
+> Create the key from inside `redStack/` so the `.pem` lands in the repo root next to `terraform/`. This is the file Terraform uses to decrypt the Windows password, and keeping it here is what makes `ssh_private_key_path = "../rs-rsa-key.pem"` resolve correctly.
 
 Windows (PowerShell):
 

@@ -19,11 +19,11 @@ Order is Sliver, then Mythic, then Adaptix. Each ends with a beacon that stays r
 
 Every beacon in this lab calls back to the redirector's public Elastic IP on 443 (HTTPS). The redirector then gates and routes the request to the right C2 backend. Three things must line up or the caller gets the CloudEdge decoy page instead of a session.
 
-Callback host. Use the redirector public EIP from `deployment_info.txt`, as `https://<REDIR_PUBLIC_IP>/...`. In Tunneled Access the public EIP is always live and is the only callback host that works; the `tun0` IP does not work as a callback because HSL does not route VPN client IPs back to the target. This is why the Windows test beacons here point at the public EIP: it is the exact path ShadowGate will use in ATTACK.
+**Callback host.** Use the redirector public EIP from `deployment_info.txt`, as `https://<REDIR_PUBLIC_IP>/...`. In Tunneled Access the public EIP is always live and is the only callback host that works; the `tun0` IP does not work as a callback because HSL does not route VPN client IPs back to the target. This is why the Windows test beacons here point at the public EIP: it is the exact path ShadowGate will use in ATTACK.
 
-Header gate. The redirector drops anything without `X-Request-ID: <TOKEN>`, where `<TOKEN>` is the `X-Request-ID` value from `deployment_info.txt`. Wrong or missing header returns the decoy page.
+**Header gate.** The redirector drops anything without `X-Request-ID: <TOKEN>`, where `<TOKEN>` is the `X-Request-ID` value from `deployment_info.txt`. Wrong or missing header returns the decoy page.
 
-URI prefix. Each C2 has its own prefix. The redirector strips the prefix for Sliver and Mythic before forwarding, and preserves it for Adaptix:
+**URI prefix.** Each C2 has its own prefix. The redirector strips the prefix for Sliver and Mythic before forwarding, and preserves it for Adaptix:
 
 | C2     | URI prefix                | Redirector behavior   | Callback (beacon to redirector) | Backend (redirector to C2) |
 | ------ | ------------------------- | --------------------- | ------------------------------ | -------------------------- |
@@ -33,9 +33,18 @@ URI prefix. Each C2 has its own prefix. The redirector strips the prefix for Sli
 
 The redirector terminates the beacon's TLS on 443 (self-signed in Tunneled Access, with the public IP as SAN), gates on the header and URI, then re-encrypts to each C2's own TLS listener on 443. Every leg is HTTPS end to end: beacon to redirector, and redirector to backend. Both the redirector cert and the backend C2 certs are self-signed, so the beacons skip cert verification (or trust the cert) and the redirector proxies with verification disabled (`SSLProxyVerify none`).
 
-Test platform. All three beacons run on the Windows operator workstation. The Mythic UI and both file-transfer paths live there, and it can reach the redirector public EIP the same way ShadowGate will. Defender is disabled on the lab Windows host by default so unobfuscated implants run; if you re-enabled it, re-disable with `Set-MpPreference -DisableRealtimeMonitoring $true` or the beacon is quarantined.
+**Test platform.** All three beacons run on the Windows operator workstation. The Mythic UI and both file-transfer paths live there, and it can reach the redirector public EIP the same way ShadowGate will.
 
-Values you will reuse below, all from `terraform output deployment_info` (also in `redStack/deployment_info.txt`): the redirector public EIP `<REDIR_PUBLIC_IP>`, the header token `<TOKEN>`, and the lab password `<LAB_PASSWORD>`.
+> [!TIP]
+> Defender is disabled on the lab Windows host by default so unobfuscated implants run. If you re-enabled it, re-disable with `Set-MpPreference -DisableRealtimeMonitoring $true` or the beacon is quarantined.
+
+Values you will reuse below, all from `terraform output deployment_info` (also in `redStack/deployment_info.txt`):
+
+| Placeholder         | Value                           |
+| ------------------- | ------------------------------- |
+| `<REDIR_PUBLIC_IP>` | redirector public Elastic IP    |
+| `<TOKEN>`           | the `X-Request-ID` header token |
+| `<LAB_PASSWORD>`    | the lab password                |
 
 ---
 

@@ -2,7 +2,8 @@
 
 The hands-on attack chain: from a deployed lab and validated C2 to a Sliver beacon on ShadowGate and SYSTEM on the domain controller. Every attendee runs this against their own instanced ShadowGate. Picks up where CONFIG leaves off (three heartbeat beacons live, Sliver HTTPS listener up).
 
-> Authorization: this runs only against a Hack Smarter Labs ShadowGate instance you are subscribed to, on a per-user instanced connection. No other target.
+> [!CAUTION]
+> This runs only against a Hack Smarter Labs ShadowGate instance you are subscribed to, on a per-user instanced connection. No other target.
 
 | At a glance   |                                                                          |
 | ------------- | ------------------------------------------------------------------------ |
@@ -19,11 +20,15 @@ The hands-on attack chain: from a deployed lab and validated C2 to a Sliver beac
 
 Two directions, two different paths. Getting them straight is what makes the beacon land.
 
-Operator to target (recon, delivery) goes through the tunnel: your internal host (Kali) routes the target CIDR `10.1.0.0/16` via the Guacamole ENI, through WireGuard to the redirector, out the redirector's OpenVPN `tun0` into the HSL range. This is how you reach and deliver to ShadowGate.
+| Direction | Path | Purpose |
+| --------- | ---- | ------- |
+| Operator to target | Kali routes the target CIDR via the Guacamole ENI, through WireGuard to the redirector, out its OpenVPN `tun0` into the HSL range | recon and delivery: how you reach ShadowGate |
+| Target to redirector | ShadowGate calls back out its own internet egress to the redirector public EIP on 443 (not the tunnel) | the beacon callback |
 
-Target to redirector (the beacon callback) does not use the tunnel. ShadowGate calls back out its own internet egress to the redirector public Elastic IP on 443, exactly like the Windows test beacon in CONFIG. HSL does not route VPN client IPs back to the target, so the `tun0` IP is never a valid callback. The Sliver implant must call `https://<REDIR_PUBLIC_IP>/cloud/storage/objects/`.
+The `tun0` IP is never a valid callback: HSL does not route VPN client IPs back to the target, so the Sliver implant must call `https://<REDIR_PUBLIC_IP>/cloud/storage/objects/`, exactly like the Windows test beacon in CONFIG.
 
-So: you push in over the tunnel, the beacon comes back over the public internet to the redirector. Both must work.
+> [!IMPORTANT]
+> You push in over the tunnel; the beacon comes back over the public internet to the redirector. Both must work.
 
 ---
 
@@ -86,7 +91,13 @@ The black-box path from zero credentials to Domain Admin is about 40 minutes of 
 - Target: `DC01.shadow.gate` at `<ShadowGate IP>`
 - `Administrator` NT hash: `4366ec0f86e29be2a4a5e87a1ba922ec`
 
-On a domain controller, Domain Admin is local admin, which is what makes the delivery and SYSTEM escalation below work. In one line, the whitecarded chain is: anonymous SMB user enumeration, AS-REP roast of `jtrueblood`, shadow-credential takeover of `bbrown` through a GenericWrite, an ESC8 NTLM relay to AD CS Web Enrollment coerced with PetitPotam to mint a `DC01$` certificate, then DCSync to recover the `Administrator` hash shown above.
+On a domain controller, Domain Admin is local admin, which is what makes the delivery and SYSTEM escalation below work. The whitecarded chain, for reference:
+
+1. Anonymous SMB user enumeration
+2. AS-REP roast of `jtrueblood`
+3. Shadow-credential takeover of `bbrown` through a GenericWrite
+4. ESC8 NTLM relay to AD CS Web Enrollment, coerced with PetitPotam, to mint a `DC01$` certificate
+5. DCSync to recover the `Administrator` hash shown above
 
 ---
 
@@ -226,7 +237,10 @@ If it fails: if a beacon does not appear, Defender may have caught the less-obfu
 
 ## Phase 5: Escalate Sliver to SYSTEM
 
-Do not use `getsystem` here. Sliver's `getsystem` spawns a new SYSTEM implant that has to make its own callback, and that spawned callback does not survive the HSL egress path (it never registers). Use a scheduled task instead: it runs as SYSTEM and launches the beacon you already dropped, which reaches the redirector over the callback that already works.
+> [!WARNING]
+> Do not use `getsystem` here. Sliver's `getsystem` spawns a new SYSTEM implant that has to make its own callback, and that spawned callback does not survive the HSL egress path (it never registers).
+
+Use a scheduled task instead: it runs as SYSTEM and launches the beacon you already dropped, which reaches the redirector over the callback that already works.
 
 From the Administrator beacon, create and run the task. Sliver's `execute` treats `\` as an escape, so double the backslashes in the path or it lands mangled:
 

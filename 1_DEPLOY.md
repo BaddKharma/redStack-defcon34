@@ -22,7 +22,8 @@ Work top to bottom. Every step lists the command, what success looks like, and w
 
 ## Directory model (read this first)
 
-Terraform runs from `redStack/terraform/`, but `rs-rsa-key.pem` (the key Terraform uses to decrypt the Windows password) sits one level up in the repo root. So `terraform.tfvars` must set `ssh_private_key_path = "../rs-rsa-key.pem"`, or the decrypt silently fails and the Windows password shows "(not yet available)".
+> [!IMPORTANT]
+> Terraform runs from `redStack/terraform/`, but `rs-rsa-key.pem` (used to decrypt the Windows password) sits one level up in the repo root. `terraform.tfvars` must set `ssh_private_key_path = "../rs-rsa-key.pem"`, or the decrypt silently fails and the Windows password shows "(not yet available)".
 
 Full directory layout is in the [redStack wiki](https://github.com/BaddKharma/redStack/wiki).
 
@@ -56,13 +57,22 @@ enable_vpn_tunnel                    = true   # OpenVPN client + WireGuard routi
 enable_redirector_htaccess_filtering = false  # scanner/AV blocking has no effect inside an isolated lab
 ```
 
-Tunnel CIDRs. Route only the specific target subnet you need, never a supernet that contains the lab VPCs (10.50.0.0/16, 10.60.0.0/16). Guacamole's WireGuard `AllowedIPs` is taken directly from this list and its tunnel endpoint is the redirector's 10.60.x IP, so a broad range like 10.0.0.0/8 swallows that endpoint and deadlocks the tunnel. ShadowGate's address is per-instance (seen in 10.0.x and 10.1.x), so power the range on in the HSL portal first, read its IP, and route the matching /16. Do not carry over a hardcoded value from a prior run. Build the /16 from the first two octets of ShadowGate's IP followed by `.0.0/16`: `10.0.28.224` becomes `10.0.0.0/16`, `10.1.5.40` becomes `10.1.0.0/16`.
+Tunnel CIDRs. Route only the target subnet you need. Power ShadowGate on in the HSL portal first, read its IP, and set `vpn_tunnel_cidrs` to the matching /16: the first two octets of the IP, then `.0.0/16`.
+
+| ShadowGate IP | `vpn_tunnel_cidrs` |
+| ------------- | ------------------ |
+| `10.0.28.224` | `["10.0.0.0/16"]`  |
+| `10.1.5.40`   | `["10.1.0.0/16"]`  |
 
 ```hcl
-vpn_tunnel_cidrs = ["X.X.0.0/16"]   # first two octets of ShadowGate IP + .0.0/16; never 10.50.0.0/16 or 10.60.0.0/16
+vpn_tunnel_cidrs = ["X.X.0.0/16"]   # first two octets of ShadowGate IP + .0.0/16
 ```
 
-Power on ShadowGate in the HSL portal before you deploy and confirm your `vpn_tunnel_cidrs` /16 contains its IP. Resetting or rebooting the ShadowGate instance in the HSL portal can reassign its IP, so re-check it after any reset. If HSL hands ShadowGate an IP in a different /16 (at first boot or after a reset), `terraform destroy` and redeploy with the updated CIDR: the WireGuard routing is baked into Guacamole at boot and guac ignores user_data changes, so a plain `terraform apply` will not re-route a new subnet.
+> [!WARNING]
+> Never route a supernet that contains the lab VPCs (`10.50.0.0/16`, `10.60.0.0/16`). Guacamole's WireGuard `AllowedIPs` comes straight from this list and its tunnel endpoint is the redirector's `10.60.x` IP, so a broad range like `10.0.0.0/8` swallows that endpoint and deadlocks the tunnel. Do not carry a hardcoded value over from a prior run.
+
+> [!IMPORTANT]
+> A ShadowGate reset or reboot in the HSL portal can reassign its IP, so re-check after any reset. If the new IP lands in a different /16, `terraform destroy` and redeploy with the updated CIDR: the WireGuard routing is baked into Guacamole at boot (guac ignores `user_data` changes), so a plain `terraform apply` will not re-route a new subnet.
 
 Success: `terraform.tfvars` saved with your IP, `ssh_private_key_path = "../rs-rsa-key.pem"`, the three tunnel values, and the RFC1918 CIDRs.
 
@@ -85,7 +95,10 @@ If it fails: `InvalidKeyPair.NotFound`, `ssh_key_name` does not match AWS, list 
 terraform apply
 ```
 
-Type `yes`. Apply runs about 5 to 10 minutes. Expect the Windows instance to sit in "still creating" for roughly 8 to 12 minutes while it waits for the AWS-generated Administrator password. That wait is intentional (create now blocks until the password is decryptable), not a hang.
+Type `yes`. Apply runs about 5 to 10 minutes.
+
+> [!NOTE]
+> The Windows instance sits in "still creating" for roughly 8 to 12 minutes while it waits for the AWS-generated Administrator password. That wait is intentional (create blocks until the password is decryptable), not a hang.
 
 Cloud-init keeps running after apply returns. Linux hosts and Guacamole come up shortly after; the Windows workstation and the Mythic UI need roughly another 10 minutes.
 
@@ -207,7 +220,8 @@ systemctl status vpn-tunnel --no-pager -l
 
 If it fails: the service will not start if `~/vpn/` is empty (Step 8). The status command above shows auth or route errors inline.
 
-Note: if you generate C2 agents, do it after the tunnel is up, not before. Beacons always call back to the redirector public Elastic IP (in `deployment_info.txt`), never the `tun0` IP: HSL does not route VPN client IPs back to the target, so a `tun0` callback never returns. Full callback config is in CONFIG and ATTACK.
+> [!IMPORTANT]
+> Generate C2 agents only after the tunnel is up. Beacons always call back to the redirector public Elastic IP (in `deployment_info.txt`), never the `tun0` IP: HSL does not route VPN client IPs back to the target, so a `tun0` callback never returns. Full callback config is in CONFIG and ATTACK.
 
 ### Step 10. Confirm reachability to the target
 
