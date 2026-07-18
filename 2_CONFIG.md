@@ -211,7 +211,7 @@ If it fails: see the wiki Mythic > Troubleshooting > "Callback never arrives" (l
 
 ---
 
-## Phase C: Adaptix
+## Phase C: AdaptixC2
 
 The Adaptix teamserver builds itself during cloud-init and runs headless on the Adaptix host; there is no VNC desktop and nothing to compile by hand. The operator GUI client runs on the Windows workstation. Adaptix's `/edge/cache/assets/` prefix is preserved (not stripped) by the redirector, so the beacon listener URIs must carry the full prefix. The redStack build presets those listener defaults for you, so standing it up is mostly confirming values and clicking Create.
 
