@@ -2,14 +2,14 @@
 
 Stand up all three C2 backends behind the redirector and confirm a working test beacon from each, using the Windows operator workstation as the test platform. This picks up where DEPLOY leaves off (stack live, hosts verified, tunnel up, ShadowGate reachable) and hands off to ATTACK with three validated callback paths.
 
-Order is Sliver, then Mythic, then Havoc. Each ends with a beacon that stays running as a persistent heartbeat, so if anything in the redirector or a listener breaks later, a dead beacon tells you before the attack does.
+Order is Sliver, then Mythic, then Adaptix. Each ends with a beacon that stays running as a persistent heartbeat, so if anything in the redirector or a listener breaks later, a dead beacon tells you before the attack does.
 
 | At a glance   |                                                                     |
 | ------------- | ------------------------------------------------------------------- |
 | Depends on    | DEPLOY complete through Phase 3 (tunnel up, target reachable)        |
 | Test platform | Windows operator workstation (via Guacamole RDP)                    |
 | Callback host | Redirector public Elastic IP, 443/HTTPS for all three C2s (see Callback architecture)  |
-| C2 order      | Sliver, Mythic, Havoc                                                |
+| C2 order      | Sliver, Mythic, Adaptix                                                |
 | End state     | Three live beacons on the Windows host, left running as heartbeats   |
 | Hands off to  | ATTACK (chain against ShadowGate)                                   |
 
@@ -23,13 +23,13 @@ Callback host. Use the redirector public EIP from `deployment_info.txt`, as `htt
 
 Header gate. The redirector drops anything without `X-Request-ID: <TOKEN>`, where `<TOKEN>` is the `X-Request-ID` value from `deployment_info.txt`. Wrong or missing header returns the decoy page.
 
-URI prefix. Each C2 has its own prefix. The redirector strips the prefix for Sliver and Mythic before forwarding, and preserves it for Havoc:
+URI prefix. Each C2 has its own prefix. The redirector strips the prefix for Sliver and Mythic before forwarding, and preserves it for Adaptix:
 
-| C2     | URI prefix                | Redirector behavior   | Callback (demon to redirector) | Backend (redirector to C2) |
+| C2     | URI prefix                | Redirector behavior   | Callback (beacon to redirector) | Backend (redirector to C2) |
 | ------ | ------------------------- | --------------------- | ------------------------------ | -------------------------- |
 | Sliver | `/cloud/storage/objects/` | strip prefix, forward | 443 (HTTPS)                    | 443 (HTTPS)                |
 | Mythic | `/cdn/media/stream/`      | strip prefix, forward | 443 (HTTPS)                    | 443 (HTTPS)                |
-| Havoc  | `/edge/cache/assets/`     | preserve full path    | 443 (HTTPS)                    | 443 (HTTPS)                |
+| Adaptix| `/edge/cache/assets/`     | preserve full path    | 443 (HTTPS)                    | 443 (HTTPS)                |
 
 The redirector terminates the beacon's TLS on 443 (self-signed in Tunneled Access, with the public IP as SAN), gates on the header and URI, then re-encrypts to each C2's own TLS listener on 443. Every leg is HTTPS end to end: beacon to redirector, and redirector to backend. Both the redirector cert and the backend C2 certs are self-signed, so the beacons skip cert verification (or trust the cert) and the redirector proxies with verification disabled (`SSLProxyVerify none`).
 
@@ -99,7 +99,9 @@ If it fails: SSH hang during generate points at an undersized instance (see Step
 
 ### Step A4. Transfer to Windows and execute
 
-In MobaXterm, `cd /tmp` in the Sliver SSH session; the SFTP panel follows the directory. Right-click `sysProxy.exe` > Download to `C:\Users\Administrator\Desktop\`. Or from PowerShell on the Windows host:
+In MobaXterm, `cd /tmp` in the Sliver SSH session; the SFTP panel follows the directory. Right-click `sysProxy.exe` > Download to `C:\Users\Administrator\Desktop\`. 
+
+Or from PowerShell on the Windows host:
 
 ```powershell
 scp admin@sliver:/tmp/sysProxy.exe C:\Users\Administrator\Desktop\sysProxy.exe
@@ -200,119 +202,108 @@ If it fails: see the wiki Mythic > Troubleshooting > "Callback never arrives" (l
 
 ---
 
-## Phase C: Havoc
+## Phase C: Adaptix
 
-Havoc compiles from source once per deploy (~9 min). If you did not kick off the build in DEPLOY Step 3, start it now and set up nothing else until it finishes. Havoc's `/edge/cache/assets/` prefix is preserved (not stripped) by the redirector, so the listener URI must carry the full prefix.
+The Adaptix teamserver builds itself during cloud-init and runs headless on the Adaptix host; there is no VNC desktop and nothing to compile by hand. The operator GUI client runs on the Windows workstation. Adaptix's `/edge/cache/assets/` prefix is preserved (not stripped) by the redirector, so the beacon listener URIs must carry the full prefix. The redStack build presets those listener defaults for you, so standing it up is mostly confirming values and clicking Create.
 
-### Step C1. Build (once per deploy) and verify the teamserver
+### Step C1. Confirm the teamserver is up
 
-If you did not already build in DEPLOY Step 3, run the build from a terminal on the Havoc (Guacamole > Havoc Desktop VNC), so the ~9 min compile does not hang an SSH session:
-
-```bash
-~/build_havoc.sh
-```
-
-Optionally watch the log for `Havoc Build Complete`:
+Adaptix is the slowest backend to build (~12 min in cloud-init), so confirm it is running before you connect. From the Adaptix host (Guacamole > Adaptix (SSH)):
 
 ```bash
-tail -f ~/havoc_build.log
+sudo systemctl status adaptix --no-pager
+sudo ss -tlnp | grep 4321
 ```
 
-Then confirm the teamserver is up and running if the build terminal was closed:
+Success: `active (running)` and port 4321 listening. The teamserver auto-starts at the end of its build.
 
-```bash
-sudo systemctl status havoc
-sudo ss -tlnp | grep 40056
-```
+If it fails: if the service is missing or the build did not finish, run `~/build_adaptix_server.sh` once to rebuild and start it, then re-check. `journalctl -u adaptix` shows startup errors.
 
-Success: `active (running)` and port 40056 listening. The build ends by starting the teamserver.
+### Step C2. Connect the operator client
 
-If it fails: `grep -E 'error|fail|FAIL' ~/havoc_build.log`. Out-of-memory on the Qt5 compile means bump to `t3.large` and re-run (`build_havoc.sh` is incremental).
+The AdaptixClient is pre-installed on the Windows operator at `C:\Tools\AdaptixClient\AdaptixClient.exe` (desktop shortcut). From the Windows operator (Guacamole RDP), launch it and click **Connect**. Fill the connection form:
 
-### Step C2. Connect Katana
+| Field    | Value                          |
+| -------- | ------------------------------ |
+| Project  | any name (e.g. `redstack`)     |
+| URL      | `https://adaptix:4321/adaptix` |
+| Username | any nickname (e.g. `operator`) |
+| Password | `<LAB_PASSWORD>`               |
 
-Guacamole > Havoc Desktop (VNC). Double-click Havoc Client; on first launch click `Mark Executable`. Login variables:
+The endpoint (`/adaptix`) is part of the URL and must be included, or the client returns a login failure. The teamserver runs in password-only mode, so any username works with the lab password.
 
-| Field    | Value                     |
-| -------- | ------------------------- |
-| Name     | `admin`                   |
-| Host     | `localhost`               |
-| Port     | `40056`                   |
-| Username | `admin`                   |
-| Password | `<LAB_PASSWORD>`          |
+Success: the client connects and opens on an empty sessions view.
 
-Success: Katana opens on the Sessions tab (empty).
+If it fails: "login failure" almost always means the URL is missing `/adaptix`, or the teamserver has not finished building (Step C1). Confirm 4321 is reachable from the Windows host with `Test-NetConnection adaptix -Port 4321`.
 
-If it fails: confirm the teamserver is listening (Step C1) and the password matches `/opt/Havoc/profiles/default.yaotl`.
+### Step C3. Create the BeaconHTTP listener
 
-### Step C3. Create the listener
+In the client, open **Listeners** (the headphone icon). Right-click the empty panel at the bottom of the client and choose **Create** to add a listener, then set the type to **BeaconHTTP**. The redStack build has already preset every field for this lab, so confirm the values and create it:
 
-Menu: View > Listeners > Add.
+| Field                   | Preset value                                    |
+| ----------------------- | ----------------------------------------------- |
+| Bind / Port             | `0.0.0.0` / `443`, SSL on                       |
+| Callback (address:port) | `<REDIR_PUBLIC_IP>:443` (redirector public EIP) |
+| URIs                    | three paths under `/edge/cache/assets/`         |
+| Request headers         | `X-Request-ID: <TOKEN>`                          |
+| Trust X-Forwarded-For   | on                                              |
 
-| Field       | Value                                                                                                    |
-| ----------- | -------------------------------------------------------------------------------------------------------- |
-| Name        | `https`                                                                                                  |
-| Payload     | `Https`                                                                                                  |
-| Hosts       | `<REDIR_PUBLIC_IP>`, then Add                                                                            |
-| Host (Bind) | `0.0.0.0`                                                                                                |
-| PortBind    | `443`                                                                                                    |
-| PortConn    | `443`                                                                                                    |
-| Headers     | `X-Request-ID: <TOKEN>`, then Add<br>**NOTE: Replace `<TOKEN>` with the value from deployment_info.txt** |
-| Uris        | `/edge/cache/assets/update`, then Add.                                                                   |
-| UserAgent   | leave default                                                                                            |
+Confirm the callback shows your redirector public EIP and the request header shows your real token (both are baked from `deployment_info` at deploy). If either still shows a placeholder, the project loaded a stale cached extender: disconnect, reconnect on a fresh project name, and the presets repopulate.
 
-`Payload: Https` makes the teamserver stand up its own TLS listener on 443 (the teamserver has `CAP_NET_BIND_SERVICE`, so binding 443 as `admin` works). The redirector re-encrypts to it. Enter the header key as the full `X-Request-ID`, not just `ID`.
+Create.
 
-Save.
+Success: the BeaconHTTP listener shows running, bound on 443. The teamserver has `CAP_NET_BIND_SERVICE`, so binding 443 as `admin` works, and the redirector re-encrypts to it.
 
-Success: the `https` listener shows running in the Listeners tab.
+If it fails: a listener that won't start usually means 443 is already bound or a URI is malformed. Confirm every URI begins with `/edge/cache/assets/`.
 
-If it fails: listener won't start usually means a port already bound or a malformed URI.
+### Step C4. Generate the beacon
 
-### Step C4. Generate the demon
+With the listener selected, open the agent generator (right-click the listener > Generate, or the client's **Generate** action):
 
-Menu: Attack > Payloads.
+| Field            | Value                         |
+| ---------------- | ----------------------------- |
+| Listener         | the BeaconHTTP listener above |
+| Agent            | `beacon` (HTTP)               |
+| Operating System | `Windows`                     |
+| Arch             | `x64`                         |
+| Format           | `Executable (.exe)`           |
 
-1. Listener: `https`.
-2. Arch: `x64`. Format: `Windows Exe`.
-3. Injection > Spawn64: `C:\Windows\System32\notepad.exe`
-4. Injection > Spawn32: `C:\Windows\SysWOW64\notepad.exe`
-5. Leave Sleep technique, Indirect Syscall, AMSI/ETW at defaults. Generate, and save the demon as `hlpUpdate.exe` to `/home/admin/Desktop/` (service-like, h = Havoc).
+Generate and save it as `axUpdate.exe` (service-like, a = Adaptix). Adaptix cross-compiles the Windows beacon with the mingw toolchain already installed on the teamserver.
 
-Spawn64 and Spawn32 are required; blank causes a silent build failure.
+Success: `axUpdate.exe` is written (to the Windows host, or to the teamserver to pull as below).
 
-Success: `hlpUpdate.exe` on the Havoc desktop.
+If it fails: if generation errors, confirm the listener is running and the beacon extender built (`ls /opt/AdaptixC2/dist/extenders/` on the teamserver).
 
-If it fails: silent failure is almost always empty Spawn fields.
+### Step C5. Execute, confirm, leave running
 
-### Step C5. Transfer, execute, confirm, leave running
-
-From PowerShell on the Windows host, one command at a time:
+If you saved the beacon on the teamserver rather than the Windows host, pull it from PowerShell on the Windows operator:
 
 ```powershell
-scp admin@havoc:/home/admin/Desktop/hlpUpdate.exe C:\Users\Administrator\Desktop\hlpUpdate.exe
+scp admin@adaptix:/home/admin/axUpdate.exe C:\Users\Administrator\Desktop\axUpdate.exe
 ```
+
+Then launch it:
 
 ```powershell
-Start-Process -FilePath "C:\Users\Administrator\Desktop\hlpUpdate.exe" -WindowStyle Hidden
+Start-Process -FilePath "C:\Users\Administrator\Desktop\axUpdate.exe" -WindowStyle Hidden
 ```
 
-A session appears in the Havoc Sessions tab within ~10 seconds. Right-click > Interact:
+A beacon appears in the Adaptix client's sessions view within ~10 seconds. Right-click it > Interact (open its console) and run a quick check:
 
 ```text
-shell whoami
+whoami
 ps
 ```
 
-Success: `whoami` returns `windows\administrator`. Leave the demon running as the Havoc heartbeat.
+Success: `whoami` returns `windows\administrator`. Leave the beacon running as the Adaptix heartbeat; do not kill it.
 
-If it fails: see the wiki Havoc > Troubleshooting > "Demon doesn't call back" (listener running, URI prefix, header, Defender, Spawn paths).
+If it fails: see the wiki Adaptix > Troubleshooting > "Beacon doesn't call back" (listener running, URI prefix, header, callback EIP, Defender).
 
 ---
 
 ## All three up: confirm and monitor as heartbeats
 
-With Sliver, Mythic, and Havoc beacons live, confirm the full front door in one shot from the redirector (Guacamole > Redirector SSH):
+With Sliver, Mythic, and Adaptix beacons live, confirm the full front door in one shot from the redirector (Guacamole > Redirector SSH):
 
 ```bash
 sudo /home/admin/test_redirector.sh
@@ -326,10 +317,10 @@ Leave all three beacons running. They are your heartbeats: if the redirector, a 
 sudo tail -f /var/log/apache2/redirector-ssl-access.log
 ```
 
-All three beacons hit 443, so they all land in `redirector-ssl-access.log`. You should see periodic GET/POST at each beacon's callback interval, prefixed by C2: `/cloud/storage/objects/` (Sliver), `/cdn/media/stream/` (Mythic), `/edge/cache/assets/` (Havoc). A prefix that stops appearing is your early warning.
+All three beacons hit 443, so they all land in `redirector-ssl-access.log`. You should see periodic GET/POST at each beacon's callback interval, prefixed by C2: `/cloud/storage/objects/` (Sliver), `/cdn/media/stream/` (Mythic), `/edge/cache/assets/` (Adaptix). A prefix that stops appearing is your early warning.
 
 ---
 
 ## Where this hands off
 
-Three validated callback paths, three live heartbeats on the Windows operator, redirector confirmed. ATTACK uses the Sliver path to land a beacon on ShadowGate and escalate; the Mythic and Havoc heartbeats stay up as config health checks throughout.
+Three validated callback paths, three live heartbeats on the Windows operator, redirector confirmed. ATTACK uses the Sliver path to land a beacon on ShadowGate and escalate; the Mythic and Adaptix heartbeats stay up as config health checks throughout.
