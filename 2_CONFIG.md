@@ -156,8 +156,8 @@ Left sidebar > **Create Payload**. The builder walks you through four sections i
 1. **Select OS** — choose `Windows`.
 2. **Select Payload** — choose `Apollo`. A **Continue from Existing Payload / Start Fresh** toggle appears; select **Start Fresh**.
 3. **Build Parameters** — set `Output Format` to `WinExe` and click next.
-4. **Commands** — keep the default set (`shell`, `ps`, `run`, `upload`) and add `whoami`.
-	1. Find `whoami` on the left side, toggle it, and press the single arrow `>` to add it to the payload build. Click next.
+4. **Commands** — keep the default set (`shell`, `ps`, `run`, `upload`) and add `whoami` and `ls`.
+	1. Find `whoami` on the left side, toggle it, and press the single arrow `>` to add it to the payload build. Do the same for `ls`. Click next.
 5. **C2 Profiles** — pick `http`, click **+ INCLUDE PROFILE**.
 
 On the `http` profile, set only these fields, in the order they appear in the UI. Leave everything else (encryption, kill date, and so on) at its default:
