@@ -133,11 +133,18 @@ cloud-init status --wait; systemctl status adaptix --no-pager
 
 In Guacamole, click Windows (RDP). Give it 10 to 30 seconds.
 
-Success: the desktop loads with Chromium, VS Code, MobaXterm (redStack Lab session folder), and 7-Zip present. Windows has finished provisioning when the AdaptixClient shortcut appears on the desktop; that is the last thing cloud-init drops, so wait for it before relying on the box.
+Success: the desktop loads with Chromium, VS Code, MobaXterm (redStack Lab session folder), 7-Zip, and the Adaptix client present. Provisioning is still running while a `_SETUP-IN-PROGRESS.txt` file sits on the desktop; the box is ready when that is replaced by `_SETUP-COMPLETE.txt`. Open the `Setup Log` desktop shortcut to watch the live provisioning log finish.
 
-If MobaXterm opens without the redStack Lab session folder, provisioning had not finished when it launched. Close MobaXterm, wait for the AdaptixClient desktop shortcut, then reopen it and the session folder will be there.
+If MobaXterm opens without the redStack Lab session folder, provisioning had not finished when it launched. Close MobaXterm, wait for `_SETUP-COMPLETE.txt` on the desktop, then reopen it and the session folder will be there.
 
-If it fails: wait five more minutes; Windows is the slowest host and the decrypted Administrator password is applied late in cloud-init. If RDP rejects the password, the credential baked into Guacamole is stale (the password was not ready when the portal built its connection), fix the key path per the Directory model section and redeploy, or edit the Windows (RDP) connection in Guacamole and paste the password from `deployment_info`.
+If it fails: wait five more minutes; Windows is the slowest host and the decrypted Administrator password is applied late in cloud-init. If RDP rejects the password (or `deployment_info` shows the Windows password as `(not yet available)`), the pem terraform used to decrypt does not match the key pair the instance launched with, so it could not decrypt the password and Guacamole baked a blank one. `deployment_info` will not have the password in this case, so pull it straight from AWS with the correct pem, then paste it into the Windows (RDP) connection in Guacamole:
+
+```powershell
+$winId = aws ec2 describe-instances --filters "Name=tag:Hostname,Values=windows" "Name=instance-state-name,Values=running" --query "Reservations[].Instances[].InstanceId" --output text
+aws ec2 get-password-data --instance-id $winId --priv-launch-key ../rs-rsa-key.pem
+```
+
+In Guacamole, edit the Windows (RDP) connection and set its password to that value. To also fix the terraform output, correct `ssh_private_key_path` to the matching pem and run `terraform apply -refresh-only`; if the pem itself is wrong (its fingerprint does not match `ssh_key_name` in AWS), redeploy per the Directory model section.
 
 ### Step 7. Optional: Confirm cross-host name resolution
 
