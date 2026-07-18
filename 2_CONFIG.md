@@ -344,6 +344,9 @@ All three beacons hit 443, so they all land in `redirector-ssl-access.log`. You 
 
 ---
 
+> [!NOTE]
+> Each framework offers multiple agents/payloads for different use cases: Mythic has Apollo (Windows), Poseidon (Linux/macOS), and others; Adaptix ships its beacon plus additional agents via extenders; Sliver generates Windows, Linux, and macOS implants natively from `generate`. This workshop uses one agent per C2 to keep the path clean, so choosing among the rest is out of scope here.
+
 ## Where this hands off
 
 Three validated callback paths, three live heartbeats on the Windows operator, redirector confirmed. ATTACK uses the Sliver path to land a beacon on ShadowGate and escalate; the Mythic and Adaptix heartbeats stay up as config health checks throughout.
