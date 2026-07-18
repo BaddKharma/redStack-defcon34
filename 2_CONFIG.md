@@ -278,15 +278,18 @@ Create.
 
 ### Step C4. Generate the beacon
 
-With the listener selected, open the agent generator (right-click the listener > `Generate agent`, or the client's **Generate** action):
+With the listener selected, open the agent generator (right-click the listener > `Generate agent`, or the client's **Generate** action). In the Generate Agent dialog:
 
-| Field            | Value                         |
-| ---------------- | ----------------------------- |
-| Listener         | the BeaconHTTP listener above |
-| Agent            | `beacon` (HTTP)               |
-| Operating System | `Windows`                     |
-| Arch             | `x64`                         |
-| Format           | `Executable (.exe)`           |
+| Field    | Value                             |
+| -------- | --------------------------------- |
+| Listener | `https` (the BeaconHTTP listener) |
+| Agent    | `beacon`                          |
+| Profile  | `beacon_1` (leave default)        |
+| Arch     | `x64`                             |
+| Format   | `Exe`                             |
+
+> [!NOTE]
+> **Profile** (`beacon_1`) is just an auto-named preset of these build options; leave it as-is. There is no operating-system field: the OS is fixed by the **Agent** you pick, and the stock `beacon` agent is Windows only, so `Format` (`Exe`, `DLL`, shellcode) produces a Windows PE. A Linux beacon would need a separate Linux agent extender on the teamserver, which this build does not include.
 
 Generate and save it as `axUpdate.exe` (service-like, a = Adaptix). Adaptix cross-compiles the Windows beacon with the mingw toolchain already installed on the teamserver.
 
@@ -311,11 +314,11 @@ Start-Process -FilePath "C:\Users\Administrator\Desktop\axUpdate.exe" -WindowSty
 A beacon appears in the Adaptix client's sessions view within ~10 seconds. Right-click it > Interact (open its console) and run a quick check:
 
 ```text
-whoami
-ps
+getuid
+ps list
 ```
 
-**Success:** `whoami` returns `windows\administrator`. Leave the beacon running as the Adaptix heartbeat; do not kill it.
+**Success:** `getuid` returns `windows\administrator`. Leave the beacon running as the Adaptix heartbeat; do not kill it.
 
 **Failure:** see the wiki Adaptix > Troubleshooting > "Beacon doesn't call back" (listener running, URI prefix, header, callback EIP, Defender).
 
