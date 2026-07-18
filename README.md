@@ -11,12 +11,14 @@
 <p align="center">
   <img src="https://img.shields.io/badge/AWS-232F3E?style=for-the-badge&logo=amazonaws&logoColor=FF9900">
   <img src="https://img.shields.io/badge/Terraform-7B42BC?style=for-the-badge&logo=terraform&logoColor=white">
-  <img src="https://img.shields.io/badge/C2-Mythic%20%7C%20Sliver%20%7C%20Havoc-C0392B?style=for-the-badge">
+  <img src="https://img.shields.io/badge/C2-Mythic%20%7C%20Sliver%20%7C%20Adaptix-C0392B?style=for-the-badge">
 </p>
 
-redStack is an open source AWS and Terraform project that stands up a full red team operator stack on demand: three C2 frameworks (Mythic, Sliver, Havoc), a Kali operator, a Windows operator, an Apache redirector with header and URI gating, and a Guacamole portal fronting the environment. One `terraform apply` brings it all up.
+redStack is an open source AWS and Terraform project that stands up a full red team operator stack on demand: three C2 frameworks (Mythic, Sliver, Adaptix), a Kali operator, a Windows operator, an Apache redirector with header and URI gating, and a Guacamole portal fronting the environment. One `terraform apply` brings it all up.
 
 This is the landing page for the DEF CON 34 workshop. The four workshop guides, slides, and supporting docs live here. The platform itself lives in the redStack repo linked below.
+
+> **Note (2026-07-18): C2 backend change.** The third C2 is now AdaptixC2, not Havoc. Havoc was archived read-only upstream in February 2026, so redStack and these guides moved to AdaptixC2 (headless teamserver on the Adaptix host, operator GUI client on the Windows workstation). The four guides are fully updated; the slide decks still reference Havoc and will be updated separately.
 
 ---
 
@@ -40,7 +42,7 @@ This is the landing page for the DEF CON 34 workshop. The four workshop guides, 
 | Noob Village | Saturday, Aug 8, 1:00-2:50pm |
 | Adversary Village | Sunday, Aug 9, 10:00-11:55am |
 
-You deploy the stack yourself, walk the operator portal, stand up your C2s, and follow a full attack chain against a live range, landing a Sliver beacon, escalating to SYSTEM, and also landing in beacons for Mythic and Havoc. 
+You deploy the stack yourself, walk the operator portal, stand up your C2s, and follow a full attack chain against a live range, landing a Sliver beacon, escalating to SYSTEM, and also landing in beacons for Mythic and Adaptix. 
 
 ---
 
@@ -50,7 +52,7 @@ A prerequisites checklist plus three guides run the workshop end to end, in orde
 
 - [0_PREREQ.md](0_PREREQ.md): what to have ready before the session. Throwaway AWS account, AWS CLI and Terraform, Kali Marketplace EULA, Hack Smarter Labs `.ovpn`, repo clone, SSH key, and your public IP. Do it ahead of time.
 - [1_DEPLOY.md](1_DEPLOY.md): initial deployment. Clean AWS account to a running stack with the OpenVPN tunnel up and ShadowGate reachable.
-- [2_CONFIG.md](2_CONFIG.md): stand up the three C2 backends (Sliver, Mythic, Havoc) behind the redirector and confirm a test beacon from each, using the Windows operator as the test platform. The beacons stay up as heartbeats.
+- [2_CONFIG.md](2_CONFIG.md): stand up the three C2 backends (Sliver, Mythic, Adaptix) behind the redirector and confirm a test beacon from each, using the Windows operator as the test platform. The beacons stay up as heartbeats.
 - [3_ATTACK.md](3_ATTACK.md): the hands-on chain against ShadowGate. Recon over the tunnel, land a Sliver beacon via the redirector public IP, escalate to full control, then tear down.
 
 ## redStack Platform
