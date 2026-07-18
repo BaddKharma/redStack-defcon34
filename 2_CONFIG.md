@@ -232,12 +232,13 @@ sudo ss -tlnp | grep 4321
 
 The AdaptixClient is pre-installed on the Windows operator at `C:\Tools\AdaptixClient\AdaptixClient.exe` (desktop shortcut). From the Windows operator (Guacamole RDP), launch it and click **Connect**. Fill the connection form:
 
-| Field    | Value                          |
-| -------- | ------------------------------ |
-| Project  | any name (e.g. `redStack`)     |
-| URL      | `https://adaptix:4321/adaptix` |
-| Username | any nickname (e.g. `operator`) |
-| Password | `<LAB_PASSWORD>`               |
+| Field     | Value                              |
+| --------- | ---------------------------------- |
+| User      | any nickname (e.g. `operator`)     |
+| Password  | `<LAB_PASSWORD>`                   |
+| URL       | `https://adaptix:4321/adaptix`     |
+| Name      | any project name (e.g. `redStack`) |
+| Directory | leave default                      |
 
 The endpoint (`/adaptix`) is part of the URL and must be included, or the client returns a login failure. The teamserver runs in password-only mode, so any username works with the lab password.
 
