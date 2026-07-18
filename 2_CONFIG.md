@@ -248,17 +248,27 @@ The endpoint (`/adaptix`) is part of the URL and must be included, or the client
 
 ### Step C3. Create the BeaconHTTP listener
 
-In the client, open **Listeners** (the headphone icon). Right-click the empty panel at the bottom of the client and choose **Create** to add a listener, then set the type to **BeaconHTTP**. The redStack build has already preset every field for this lab, so confirm the values and create it:
+In the client, open **Listeners** (the headphone icon). Right-click the empty panel at the bottom of the client and choose **Create**. In the Create Listener dialog:
 
-| Field                   | Preset value                                    |
-| ----------------------- | ----------------------------------------------- |
-| Bind / Port             | `0.0.0.0` / `443`, SSL on                       |
-| Callback (address:port) | `<REDIR_PUBLIC_IP>:443` (redirector public EIP) |
-| URIs                    | three paths under `/edge/cache/assets/`         |
-| Request headers         | `X-Request-ID: <TOKEN>`                          |
-| Trust X-Forwarded-For   | on                                              |
+- **Name:** `https` (the **Profile** field auto-fills to `https`)
+- **Config:** change it from the default `BeaconDNS` to **BeaconHTTP**
 
-Confirm the callback shows your redirector public EIP and the request header shows your real token (both are baked from `deployment_info` at deploy). If either still shows a placeholder, the project loaded a stale cached extender: disconnect, reconnect on a fresh project name, and the presets repopulate.
+The redStack build has already preset the listener for this lab, so confirm the values and create it. On the **Main settings** tab:
+
+| Field (Main settings) | Preset value                                    |
+| --------------------- | ----------------------------------------------- |
+| Host & port (Bind)    | `0.0.0.0` / `443`                               |
+| Callback addresses    | `<REDIR_PUBLIC_IP>:443` (redirector public EIP) |
+| Method                | `POST`                                          |
+| URIs                  | three paths under `/edge/cache/assets/`         |
+| Use SSL (HTTPS)       | on                                              |
+
+The `X-Request-ID: <TOKEN>` validation header the redirector requires is preset on the **HTTP Headers** tab.
+
+> [!WARNING]
+> The `Heartbeat Header` (`X-Beacon-Id`) and `Encryption key` on the Main settings tab are Adaptix's own beacon fields, not the redirector's `X-Request-ID` token. Leave both at their preset/generated values. Do not paste the `X-Request-ID` token into either.
+
+Confirm the callback shows your redirector public EIP and the header shows your real token (both are baked from `deployment_info` at deploy). If either still shows a placeholder, the project loaded a stale cached extender: disconnect, reconnect on a fresh project name, and the presets repopulate.
 
 Create.
 
@@ -268,7 +278,7 @@ Create.
 
 ### Step C4. Generate the beacon
 
-With the listener selected, open the agent generator (right-click the listener > Generate, or the client's **Generate** action):
+With the listener selected, open the agent generator (right-click the listener > `Generate agent`, or the client's **Generate** action):
 
 | Field            | Value                         |
 | ---------------- | ----------------------------- |
