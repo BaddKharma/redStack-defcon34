@@ -36,7 +36,7 @@ The `tun0` IP is never a valid callback: HSL does not route VPN client IPs back 
 
 Confirm before starting. If any fails, fix it in DEPLOY or CONFIG before continuing.
 
-Tunnel up and target reachable (from DEPLOY Phase 3). From the redirector (Guacamole > Redirector SSH):
+Tunnel up and target reachable (from DEPLOY Phase 3). From the redirector (MobaXterm **Apache Redirector (SSH)** bookmark):
 
 ```bash
 ping -c3 <ShadowGate IP>
@@ -56,7 +56,7 @@ Target IP. ShadowGate's address is per-instance and changes by location, so this
 
 ## Phase 1: Recon
 
-From Kali (Guacamole > Kali SSH), confirm the tunnel routes to the target and fingerprint it.
+From Kali (MobaXterm **Kali Linux (SSH)** bookmark), confirm the tunnel routes to the target and fingerprint it.
 
 Confirm `10.1.0.0/16` routes via the Guacamole ENI:
 
@@ -187,7 +187,11 @@ ps
 
 **Success:** a new session from `<ShadowGate IP>` registers and `whoami` returns `SHADOW\Administrator`. This is the beacon, separate from the Windows heartbeat.
 
-**Failure:** watch the redirector for the callback (`sudo tail -f /var/log/apache2/redirector-ssl-access.log`, look for `/cloud/storage/objects/`). No hits means the implant is not executing or cannot reach the public EIP. A decoy 200 means a header or prefix mismatch. Confirm Defender was disabled (step 2 runs before step 3) and verify the upload landed with `smbmap -H dc01 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' -r 'C$/Windows/Temp'`.
+**Failure:** watch the redirector for the callback (`sudo tail -f /var/log/apache2/redirector-ssl-access.log`, look for `/cloud/storage/objects/`). No hits means the implant is not executing or cannot reach the public EIP. A decoy 200 means a header or prefix mismatch. Confirm Defender was disabled (step 2 runs before step 3) and verify the upload landed with:
+
+```bash
+smbmap -H dc01 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' -r 'C$/Windows/Temp'
+```
 
 ---
 

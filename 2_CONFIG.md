@@ -54,7 +54,7 @@ Sliver drives the attack in ATTACK, so it is set up first and in the most depth.
 
 ### Step A1. Open the Sliver host
 
-From the Windows operator, use the MobaXterm **Sliver (SSH)** bookmark under the redStack Lab session folder. Guacamole > Sliver (SSH) also works though MobaXterm is preferred.
+From the Windows operator, use the MobaXterm **Sliver C2 (SSH)** bookmark under the redStack Sessions folder. (Guacamole's Sliver SSH is a last resort, only if the Windows operator is down or MobaXterm is unreachable.)
 
 **Success:** you land at `admin@sliver:~$`.
 
@@ -217,7 +217,7 @@ The Adaptix teamserver builds itself during cloud-init and runs headless on the 
 
 ### Step C1. Confirm the teamserver is up
 
-Adaptix is the slowest backend to build (~12 min in cloud-init), so confirm it is running before you connect. From the Adaptix host (Guacamole > Adaptix (SSH)):
+Adaptix is the slowest backend to build (~12 min in cloud-init), so confirm it is running before you connect. From the Adaptix host (MobaXterm **Adaptix C2 (SSH)** bookmark):
 
 ```bash
 sudo systemctl status adaptix --no-pager
@@ -326,7 +326,7 @@ ps list
 
 ## All three up: confirm and monitor as heartbeats
 
-With Sliver, Mythic, and Adaptix beacons live, confirm the full front door in one shot from the redirector (Guacamole > Redirector SSH):
+With Sliver, Mythic, and Adaptix beacons live, confirm the full front door in one shot from the redirector (MobaXterm **Apache Redirector (SSH)** bookmark):
 
 ```bash
 sudo /home/admin/test_redirector.sh

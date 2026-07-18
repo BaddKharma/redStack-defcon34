@@ -134,7 +134,7 @@ Open `https://<GUAC_PUBLIC_IP>/guacamole`, accept the self-signed cert warning, 
 
 The Adaptix teamserver compiles from source automatically during cloud-init (server plus beacon extenders, ~12 min on the default instance). It runs headless: there is no VNC desktop and nothing to kick off by hand, and it starts itself when the build finishes. Because it is the slowest backend to come up, just let it build in the background while you work Steps 6 through 10, then confirm it in CONFIG Phase C.
 
-To watch it, SSH to the Adaptix host (Guacamole > Adaptix (SSH)) and run:
+To watch it, SSH to the Adaptix host with the MobaXterm **Adaptix C2 (SSH)** bookmark and run:
 
 ```bash
 cloud-init status --wait; systemctl status adaptix --no-pager
@@ -149,6 +149,9 @@ In Guacamole, click Windows (RDP). Give it 10 to 30 seconds.
 **Success:** the desktop loads with Chromium, VS Code, MobaXterm (redStack Lab session folder), 7-Zip, and the Adaptix client present. Provisioning is still running while a `_SETUP-IN-PROGRESS.txt` file sits on the desktop; the box is ready when that is replaced by `_SETUP-COMPLETE.txt`. Open the `Setup Log` desktop shortcut to watch the live provisioning log finish.
 
 If MobaXterm opens without the redStack Lab session folder, provisioning had not finished when it launched. Close MobaXterm, wait for `_SETUP-COMPLETE.txt` on the desktop, then reopen it and the session folder will be there.
+
+> [!TIP]
+> Use the MobaXterm **redStack Sessions** bookmarks for all SSH into the lab hosts. Guacamole's per-host SSH is a last resort, only if the Windows operator box is down or MobaXterm cannot reach the host.
 
 **Failure:** wait five more minutes; Windows is the slowest host and the decrypted Administrator password is applied late in cloud-init. If RDP rejects the password (or `deployment_info` shows the Windows password as `(not yet available)`), the pem terraform used to decrypt does not match the key pair the instance launched with, so it could not decrypt the password and Guacamole baked a blank one. `deployment_info` will not have the password in this case, so pull it straight from AWS with the correct pem, then paste it into the Windows (RDP) connection in Guacamole:
 
