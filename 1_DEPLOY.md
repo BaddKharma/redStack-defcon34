@@ -144,7 +144,7 @@ $winId = aws ec2 describe-instances --filters "Name=tag:Hostname,Values=windows"
 aws ec2 get-password-data --instance-id $winId --priv-launch-key ../rs-rsa-key.pem
 ```
 
-In Guacamole, edit the Windows (RDP) connection and set its password to that value. To also fix the terraform output, correct `ssh_private_key_path` to the matching pem and run `terraform apply -refresh-only`; if the pem itself is wrong (its fingerprint does not match `ssh_key_name` in AWS), redeploy per the Directory model section.
+In Guacamole settings, edit the Windows (RDP) connection and set its password to that value. To also fix the terraform output, correct `ssh_private_key_path` to the matching pem and run `terraform apply -refresh-only`; if the pem itself is wrong (its fingerprint does not match `ssh_key_name` in AWS), redeploy per the Directory model section.
 
 ### Step 7. Optional: Confirm cross-host name resolution
 
@@ -233,7 +233,7 @@ If it fails, isolate the break from the redirector (SSH in over Guacamole), one 
 ip route
 ```
 
-Expect `10.1.0.0/16` (your target CIDR) via ... dev tun0.
+Expect `X.X.0.0/16` (your target CIDR from `terraform.tfvars`) via ... dev tun0.
 
 ```bash
 ping -c3 <ShadowGate IP>
