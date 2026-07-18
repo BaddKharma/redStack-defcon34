@@ -242,7 +242,7 @@ execute C:\\Windows\\Temp\\axUpdate.exe
 ## Phase 5: Escalate Sliver to SYSTEM
 
 > [!WARNING]
-> Do not use `getsystem` here. Sliver's `getsystem` spawns a new SYSTEM implant that has to make its own callback, and that spawned callback does not survive the HSL egress path (it never registers).
+> Do not use `getsystem` here. Sliver's `getsystem` spawns a new SYSTEM session by injecting into a SYSTEM-owned process, typically the print spooler (`spoolsv.exe`). On a domain controller the spooler behaves differently than on a normal workstation and is often disabled or not running (post-PrintNightmare hardening), so `getsystem` has no reliable target and the SYSTEM session never lands.
 
 Use a scheduled task instead: it runs as SYSTEM and launches the beacon you already dropped, which reaches the redirector over the callback that already works.
 
