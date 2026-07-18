@@ -58,7 +58,7 @@ From the Windows operator, use the MobaXterm **Sliver (SSH)** bookmark under the
 
 **Success:** you land at `admin@sliver:~$`.
 
-**Fails:** Sliver has no public IP; both paths route through the internal VPC. If SSH hangs at the banner, the host may be memory-exhausted from a prior `generate`; reboot the instance.
+**Failure:** Sliver has no public IP; both paths route through the internal VPC. If SSH hangs at the banner, the host may be memory-exhausted from a prior `generate`; reboot the instance.
 
 ### Step A2. Connect the client and start the listener
 
@@ -86,7 +86,7 @@ jobs
 
 **Success:** `jobs` lists the HTTPS listener as an active job.
 
-**Fails:** "profile with name 'redstack' already exists" is expected on reconnects, ignore it. If the client hangs on connect, `sudo systemctl restart sliver` and wait ~10 seconds.
+**Failure:** "profile with name 'redstack' already exists" is expected on reconnects, ignore it. If the client hangs on connect, `sudo systemctl restart sliver` and wait ~10 seconds.
 
 ### Step A3. Generate the implant
 
@@ -102,7 +102,7 @@ This is the only Sliver implant you build all workshop. It stays at `/tmp/sysPro
 
 **Success:** `[*] Implant saved to /tmp/sysProxy.exe`.
 
-**Fails:** SSH hang during generate points at an undersized instance (see Step A1). If it compiles but is owned by root and cannot be pulled, the umask override is missing (`/etc/systemd/system/sliver.service.d/umask.conf`).
+**Failure:** SSH hang during generate points at an undersized instance (see Step A1). If it compiles but is owned by root and cannot be pulled, the umask override is missing (`/etc/systemd/system/sliver.service.d/umask.conf`).
 
 **While waiting for this to finish, lets skip ahead and get logged into Mythic>Step B1**
 
@@ -126,7 +126,7 @@ Either way, the beacon behavior is identical.
 
 **Success:** within ~10 seconds Sliver prints an incoming session notification.
 
-**Fails:** check Defender quarantine (Event Viewer) and confirm the implant URL used `https://` with the full `/cloud/storage/objects/` prefix.
+**Failure:** check Defender quarantine (Event Viewer) and confirm the implant URL used `https://` with the full `/cloud/storage/objects/` prefix.
 
 ### Step A5. Confirm and leave running
 
@@ -139,7 +139,7 @@ ps
 
 **Success:** `whoami` returns `windows\administrator`; `ps` returns the process table. Leave this session connected. It is your Sliver heartbeat for the rest of the workshop; do not kill it.
 
-**Fails:** see the wiki Sliver > Troubleshooting > "Implant compiles but never calls back" for the ordered checklist (listener, network path, URL, header, Defender).
+**Failure:** see the wiki Sliver > Troubleshooting > "Implant compiles but never calls back" for the ordered checklist (listener, network path, URL, header, Defender).
 
 ---
 
@@ -207,7 +207,7 @@ ps
 
 **Success:** the implant shows the processes running on the host. 
 
-**Fails:** see the wiki Mythic > Troubleshooting > "Callback never arrives" (listener, network path via redirector curl test, build params header/`post_uri`, Defender).
+**Failure:** see the wiki Mythic > Troubleshooting > "Callback never arrives" (listener, network path via redirector curl test, build params header/`post_uri`, Defender).
 
 ---
 
@@ -226,7 +226,7 @@ sudo ss -tlnp | grep 4321
 
 **Success:** `active (running)` and port 4321 listening. The teamserver auto-starts at the end of its build.
 
-**Fails:** if the service is missing or the build did not finish, run `~/build_adaptix_server.sh` once to rebuild and start it, then re-check. `journalctl -u adaptix` shows startup errors.
+**Failure:** if the service is missing or the build did not finish, run `~/build_adaptix_server.sh` once to rebuild and start it, then re-check. `journalctl -u adaptix` shows startup errors.
 
 ### Step C2. Connect the operator client
 
@@ -243,7 +243,7 @@ The endpoint (`/adaptix`) is part of the URL and must be included, or the client
 
 **Success:** the client connects and opens on an empty sessions view.
 
-**Fails:** "login failure" almost always means the URL is missing `/adaptix`, or the teamserver has not finished building (Step C1). Confirm 4321 is reachable from the Windows host with `Test-NetConnection adaptix -Port 4321`.
+**Failure:** "login failure" almost always means the URL is missing `/adaptix`, or the teamserver has not finished building (Step C1). Confirm 4321 is reachable from the Windows host with `Test-NetConnection adaptix -Port 4321`.
 
 ### Step C3. Create the BeaconHTTP listener
 
@@ -263,7 +263,7 @@ Create.
 
 **Success:** the BeaconHTTP listener shows running, bound on 443. The teamserver has `CAP_NET_BIND_SERVICE`, so binding 443 as `admin` works, and the redirector re-encrypts to it.
 
-**Fails:** a listener that won't start usually means 443 is already bound or a URI is malformed. Confirm every URI begins with `/edge/cache/assets/`.
+**Failure:** a listener that won't start usually means 443 is already bound or a URI is malformed. Confirm every URI begins with `/edge/cache/assets/`.
 
 ### Step C4. Generate the beacon
 
@@ -281,7 +281,7 @@ Generate and save it as `axUpdate.exe` (service-like, a = Adaptix). Adaptix cros
 
 **Success:** `axUpdate.exe` is written (to the Windows host, or to the teamserver to pull as below).
 
-**Fails:** if generation errors, confirm the listener is running and the beacon extender built (`ls /opt/AdaptixC2/dist/extenders/` on the teamserver).
+**Failure:** if generation errors, confirm the listener is running and the beacon extender built (`ls /opt/AdaptixC2/dist/extenders/` on the teamserver).
 
 ### Step C5. Execute, confirm, leave running
 
@@ -306,7 +306,7 @@ ps
 
 **Success:** `whoami` returns `windows\administrator`. Leave the beacon running as the Adaptix heartbeat; do not kill it.
 
-**Fails:** see the wiki Adaptix > Troubleshooting > "Beacon doesn't call back" (listener running, URI prefix, header, callback EIP, Defender).
+**Failure:** see the wiki Adaptix > Troubleshooting > "Beacon doesn't call back" (listener running, URI prefix, header, callback EIP, Defender).
 
 ---
 

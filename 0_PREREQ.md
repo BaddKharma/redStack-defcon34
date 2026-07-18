@@ -96,7 +96,7 @@ terraform --version
 
 Reports v1.0 or higher.
 
-**Fails:** `InvalidClientTokenId` or `SignatureDoesNotMatch` means the keys were mistyped; re-run `aws configure`. Terraform below 1.0, upgrade. The region here must match `aws_region` in `terraform.tfvars`.
+**Failure:** `InvalidClientTokenId` or `SignatureDoesNotMatch` means the keys were mistyped; re-run `aws configure`. Terraform below 1.0, upgrade. The region here must match `aws_region` in `terraform.tfvars`.
 
 ## Step 3. Accept the Kali Marketplace EULA
 
@@ -116,7 +116,7 @@ ShadowGate: https://www.hacksmarter.org/courses/e7586073-d447-41db-8f8e-6bd22576
 
 **Success:** you have a `.ovpn` file saved locally (keep it somewhere safe since you will need this later) and the ShadowGate machine launches in the HSL portal.
 
-**Fails:** the target IP shown at launch is inside the range and does not change your VPN config. The `.ovpn` pulls its routes from HSL at connect time.
+**Failure:** the target IP shown at launch is inside the range and does not change your VPN config. The `.ovpn` pulls its routes from HSL at connect time.
 
 ## Step 5. Clone the repository
 
@@ -131,7 +131,7 @@ git checkout dev
 
 **Success:** you are inside `redStack/` on the `dev` branch (`git branch --show-current` prints `dev`) and see `terraform/` with `terraform.tfvars.example` in it.
 
-**Fails:** no `git`, install it. Corporate proxy blocking GitHub, clone over SSH: `git clone git@github.com:BaddKharma/redStack.git`.
+**Failure:** no `git`, install it. Corporate proxy blocking GitHub, clone over SSH: `git clone git@github.com:BaddKharma/redStack.git`.
 
 ## Step 6. Create the SSH key pair (right after clone, lands in `redStack/`)
 
@@ -159,7 +159,7 @@ ls -l rs-rsa-key.pem
 aws ec2 describe-key-pairs --key-names rs-rsa-key
 ```
 
-**Fails:** `InvalidKeyPair.Duplicate` means `rs-rsa-key` already exists in AWS. Three options:
+**Failure:** `InvalidKeyPair.Duplicate` means `rs-rsa-key` already exists in AWS. Three options:
 
 - **Reuse**: if you still have the original `.pem`, copy it to `redStack/rs-rsa-key.pem` and skip the create command.
 - **Import**: if you have a local SSH key pair you want to use instead, import its public key: `aws ec2 import-key-pair --key-name rs-rsa-key --public-key-material fileb://~/.ssh/id_rsa.pub` and place the matching private key at `redStack/rs-rsa-key.pem`.
@@ -175,7 +175,7 @@ curl -4 -s ifconfig.me
 
 **Success:** a single IPv4 address. You append `/32` to it in 1_DEPLOY.
 
-**Fails:** output with colons is IPv6, re-run with `-4`. The security groups only wire up IPv4.
+**Failure:** output with colons is IPv6, re-run with `-4`. The security groups only wire up IPv4.
 
 ---
 

