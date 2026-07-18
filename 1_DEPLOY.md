@@ -56,11 +56,13 @@ enable_vpn_tunnel                    = true   # OpenVPN client + WireGuard routi
 enable_redirector_htaccess_filtering = false  # scanner/AV blocking has no effect inside an isolated lab
 ```
 
-Tunnel CIDRs. Route only the specific target subnet you need, never a supernet that contains the lab VPCs (10.50.0.0/16, 10.60.0.0/16). Guacamole's WireGuard `AllowedIPs` is taken directly from this list and its tunnel endpoint is the redirector's 10.60.x IP, so a broad range like 10.0.0.0/8 swallows that endpoint and deadlocks the tunnel. ShadowGate sits on 10.1.x:
+Tunnel CIDRs. Route only the specific target subnet you need, never a supernet that contains the lab VPCs (10.50.0.0/16, 10.60.0.0/16). Guacamole's WireGuard `AllowedIPs` is taken directly from this list and its tunnel endpoint is the redirector's 10.60.x IP, so a broad range like 10.0.0.0/8 swallows that endpoint and deadlocks the tunnel. ShadowGate's address is per-instance (seen in 10.0.x and 10.1.x), so power the range on in the HSL portal first, read its IP, and route the matching /16. Do not carry over a hardcoded value from a prior run. Build the /16 from the first two octets of ShadowGate's IP followed by `.0.0/16`: `10.0.28.224` becomes `10.0.0.0/16`, `10.1.5.40` becomes `10.1.0.0/16`.
 
 ```hcl
-vpn_tunnel_cidrs = ["10.1.0.0/16"]   # add other HSL /16s as needed; never 10.50/16 or 10.60/16
+vpn_tunnel_cidrs = ["X.X.0.0/16"]   # first two octets of ShadowGate IP + .0.0/16; never 10.50.0.0/16 or 10.60.0.0/16
 ```
+
+Power on ShadowGate in the HSL portal before you deploy and confirm your `vpn_tunnel_cidrs` /16 contains its IP. Resetting or rebooting the ShadowGate instance in the HSL portal can reassign its IP, so re-check it after any reset. If HSL hands ShadowGate an IP in a different /16 (at first boot or after a reset), `terraform destroy` and redeploy with the updated CIDR: the WireGuard routing is baked into Guacamole at boot and guac ignores user_data changes, so a plain `terraform apply` will not re-route a new subnet.
 
 Success: `terraform.tfvars` saved with your IP, `ssh_private_key_path = "../rs-rsa-key.pem"`, the three tunnel values, and the RFC1918 CIDRs.
 
@@ -111,33 +113,29 @@ If it fails: if the Windows password still reads "(not yet available)," run `ter
 
 Open `https://<GUAC_PUBLIC_IP>/guacamole`, accept the self-signed cert warning, and log in as `guacadmin` with the lab password from `deployment_info`. The cert encrypts the operator session only and is not part of the C2 path.
 
-Success: the connection list shows Windows (RDP), SSH entries for Mythic, Sliver, Havoc, Redirector, Guacamole, and Kali, plus Havoc Desktop (VNC).
+Success: the connection list shows Windows (RDP), SSH entries for Mythic, Sliver, Adaptix, Redirector, Guacamole, and Kali.
 
 If it fails: give cloud-init the full 5 minutes. If the portal never loads, SSH to Guacamole and check `docker ps` for the `guacamole`, `postgres`, and `guacd` containers.
 
-### Step 5a. Kick off the Havoc build
+### Step 5a. Let the Adaptix teamserver finish building
 
-Havoc compiles from source once per deploy (~1 GB download, ~9 min). Start it now while the Windows workstation finishes booting so the two overlap. Run it from the Havoc desktop, not over SSH, so the long compile cannot hang an SSH session:
+The Adaptix teamserver compiles from source automatically during cloud-init (server plus beacon extenders, ~12 min on the default instance). It runs headless: there is no VNC desktop and nothing to kick off by hand, and it starts itself when the build finishes. Because it is the slowest backend to come up, just let it build in the background while you work Steps 6 through 10, then confirm it in CONFIG Phase C.
 
-In Guacamole, open **Havoc Desktop (VNC)**, open a terminal at the desktop, and run:
-
-```bash
-~/build_havoc.sh
-```
-
-Build log is captured and outputted here:
+To watch it, SSH to the Adaptix host (Guacamole > Adaptix (SSH)) and run:
 
 ```bash
-nano ~/havoc_build.log
+cloud-init status --wait; systemctl status adaptix --no-pager
 ```
 
-The build ends by starting the teamserver. You will confirm it in CONFIG Phase C. Continue with Step 6 while it runs.
+`active (running)` with port 4321 listening means the teamserver is ready for the operator client. If the build failed, run `~/build_adaptix_server.sh` once to retry.
 
 ### Step 6. Access the Windows operator
 
 In Guacamole, click Windows (RDP). Give it 10 to 30 seconds.
 
-Success: the desktop loads with Chromium, VS Code, MobaXterm (redStack Lab session folder), and 7-Zip present.
+Success: the desktop loads with Chromium, VS Code, MobaXterm (redStack Lab session folder), and 7-Zip present. Windows has finished provisioning when the AdaptixClient shortcut appears on the desktop; that is the last thing cloud-init drops, so wait for it before relying on the box.
+
+If MobaXterm opens without the redStack Lab session folder, provisioning had not finished when it launched. Close MobaXterm, wait for the AdaptixClient desktop shortcut, then reopen it and the session folder will be there.
 
 If it fails: wait five more minutes; Windows is the slowest host and the decrypted Administrator password is applied late in cloud-init. If RDP rejects the password, the credential baked into Guacamole is stale (the password was not ready when the portal built its connection), fix the key path per the Directory model section and redeploy, or edit the Windows (RDP) connection in Guacamole and paste the password from `deployment_info`.
 
@@ -148,7 +146,7 @@ From a Windows PowerShell prompt:
 ```powershell
 ping mythic
 ping sliver
-ping havoc
+ping adaptix
 ping redirector
 ping guac
 ping kali
@@ -242,6 +240,6 @@ If the redirector cannot reach the target either, the OpenVPN tunnel or HSL rout
 
 ## Where this hands off
 
-At the end of Phase 3 the lab is deployed, verified, tunneled, and ShadowGate is reachable. Next is CONFIG, which stands up the three C2 backends (Sliver, Mythic, Havoc) and confirms a test beacon from each. ATTACK follows with the ShadowGate chain. Teardown and cost live at the end of ATTACK, since the stack stays up across all three guides; do not destroy between them.
+At the end of Phase 3 the lab is deployed, verified, tunneled, and ShadowGate is reachable. Next is CONFIG, which stands up the three C2 backends (Sliver, Mythic, Adaptix) and confirms a test beacon from each. ATTACK follows with the ShadowGate chain. Teardown and cost live at the end of ATTACK, since the stack stays up across all three guides; do not destroy between them.
 
 Note: the tunnel does not auto-start after a stop or reboot. If you stop the stack between sessions rather than destroying it, re-run `sudo systemctl start vpn-tunnel` on the redirector when you resume (WireGuard comes back automatically).
