@@ -99,7 +99,7 @@ If it fails: SSH hang during generate points at an undersized instance (see Step
 
 ### Step A4. Transfer to Windows and execute
 
-In MobaXterm, `cd /tmp` in the Sliver SSH session; the SFTP panel follows the directory. Right-click `sysProxy.exe` > Download to `C:\Users\Administrator\Desktop\`. 
+In MobaXterm, the Sliver SSH session is running `sliver-client`, so do not `cd` there; it drops the client. Instead use the SFTP panel on the left: browse to `/tmp`, right-click `sysProxy.exe` > Download to `C:\Users\Administrator\Desktop\`. 
 
 Or from PowerShell on the Windows host:
 
