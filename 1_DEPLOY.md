@@ -74,9 +74,9 @@ vpn_tunnel_cidrs = ["X.X.0.0/16"]   # first two octets of ShadowGate IP + .0.0/1
 > [!IMPORTANT]
 > A ShadowGate reset or reboot in the HSL portal can reassign its IP, so re-check after any reset. If the new IP lands in a different /16, `terraform destroy` and redeploy with the updated CIDR: the WireGuard routing is baked into Guacamole at boot (guac ignores `user_data` changes), so a plain `terraform apply` will not re-route a new subnet.
 
-Success: `terraform.tfvars` saved with your IP, `ssh_private_key_path = "../rs-rsa-key.pem"`, the three tunnel values, and the RFC1918 CIDRs.
+**Success:** `terraform.tfvars` saved with your IP, `ssh_private_key_path = "../rs-rsa-key.pem"`, the three tunnel values, and the RFC1918 CIDRs.
 
-If it fails: nothing runs yet, but recheck the key path now. It is the single most common misconfiguration.
+**Fails:** nothing runs yet, but recheck the key path now. It is the single most common misconfiguration.
 
 ### Step 2. Init and plan
 
@@ -85,9 +85,9 @@ terraform init
 terraform plan
 ```
 
-Success: `init` reports success, and `plan` shows roughly 90 resources to add (7 EC2 instances, 2 VPCs, peering, security groups, ENIs, 2 EIPs), no errors.
+**Success:** `init` reports success, and `plan` shows roughly 90 resources to add (7 EC2 instances, 2 VPCs, peering, security groups, ENIs, 2 EIPs), no errors.
 
-If it fails: `InvalidKeyPair.NotFound`, `ssh_key_name` does not match AWS, list with `aws ec2 describe-key-pairs --query 'KeyPairs[].KeyName'`. `VPCLimitExceeded`, you are at the 5-VPC regional limit, delete unused VPCs or set `use_default_vpc = true`.
+**Fails:** `InvalidKeyPair.NotFound`, `ssh_key_name` does not match AWS, list with `aws ec2 describe-key-pairs --query 'KeyPairs[].KeyName'`. `VPCLimitExceeded`, you are at the 5-VPC regional limit, delete unused VPCs or set `use_default_vpc = true`.
 
 ### Step 3. Apply
 
@@ -102,9 +102,9 @@ Type `yes`. Apply runs about 5 to 10 minutes.
 
 Cloud-init keeps running after apply returns. Linux hosts and Guacamole come up shortly after; the Windows workstation and the Mythic UI need roughly another 10 minutes.
 
-Success: `Apply complete! Resources: NN added, 0 changed, 0 destroyed.`
+**Success:** `Apply complete! Resources: NN added, 0 changed, 0 destroyed.`
 
-If it fails: `OptInRequired`, finish the Kali subscription (0_PREREQ Step 3) and re-run, no cleanup needed. If it stops on the Windows postcondition ("Windows password_data was not available before timeouts.create expired"), the AMI ran long, re-run `terraform apply` and it picks up the now-available password.
+**Fails:** `OptInRequired`, finish the Kali subscription (0_PREREQ Step 3) and re-run, no cleanup needed. If it stops on the Windows postcondition ("Windows password_data was not available before timeouts.create expired"), the AMI ran long, re-run `terraform apply` and it picks up the now-available password.
 
 ### Step 4. Capture deployment info
 
@@ -114,9 +114,9 @@ terraform output deployment_info
 
 This holds the lab password, the Windows Administrator password, the redirector Elastic IP, and the `X-Request-ID` token. `deployment_info.txt` is also written to `redStack/`. Keep it open for the session as you will need to refer to it throughout the workshop.
 
-Success: every host block is populated, and the Windows block shows a real password rather than "(not yet available)."
+**Success:** every host block is populated, and the Windows block shows a real password rather than "(not yet available)."
 
-If it fails: if the Windows password still reads "(not yet available)," run `terraform refresh && terraform output deployment_info`. Still blank, confirm `ssh_private_key_path = "../rs-rsa-key.pem"` and that `redStack/rs-rsa-key.pem` exists (see the Directory model section).
+**Fails:** if the Windows password still reads "(not yet available)," run `terraform refresh && terraform output deployment_info`. Still blank, confirm `ssh_private_key_path = "../rs-rsa-key.pem"` and that `redStack/rs-rsa-key.pem` exists (see the Directory model section).
 
 ---
 
@@ -126,9 +126,9 @@ If it fails: if the Windows password still reads "(not yet available)," run `ter
 
 Open `https://<GUAC_PUBLIC_IP>/guacamole`, accept the self-signed cert warning, and log in as `guacadmin` with the lab password from `deployment_info`. The cert encrypts the operator session only and is not part of the C2 path.
 
-Success: the connection list shows Windows (RDP), SSH entries for Mythic, Sliver, Adaptix, Redirector, Guacamole, and Kali.
+**Success:** the connection list shows Windows (RDP), SSH entries for Mythic, Sliver, Adaptix, Redirector, Guacamole, and Kali.
 
-If it fails: give cloud-init the full 5 minutes. If the portal never loads, SSH to Guacamole and check `docker ps` for the `guacamole`, `postgres`, and `guacd` containers.
+**Fails:** give cloud-init the full 5 minutes. If the portal never loads, SSH to Guacamole and check `docker ps` for the `guacamole`, `postgres`, and `guacd` containers.
 
 ### Step 5a. Let the Adaptix teamserver finish building
 
@@ -146,11 +146,11 @@ cloud-init status --wait; systemctl status adaptix --no-pager
 
 In Guacamole, click Windows (RDP). Give it 10 to 30 seconds.
 
-Success: the desktop loads with Chromium, VS Code, MobaXterm (redStack Lab session folder), 7-Zip, and the Adaptix client present. Provisioning is still running while a `_SETUP-IN-PROGRESS.txt` file sits on the desktop; the box is ready when that is replaced by `_SETUP-COMPLETE.txt`. Open the `Setup Log` desktop shortcut to watch the live provisioning log finish.
+**Success:** the desktop loads with Chromium, VS Code, MobaXterm (redStack Lab session folder), 7-Zip, and the Adaptix client present. Provisioning is still running while a `_SETUP-IN-PROGRESS.txt` file sits on the desktop; the box is ready when that is replaced by `_SETUP-COMPLETE.txt`. Open the `Setup Log` desktop shortcut to watch the live provisioning log finish.
 
 If MobaXterm opens without the redStack Lab session folder, provisioning had not finished when it launched. Close MobaXterm, wait for `_SETUP-COMPLETE.txt` on the desktop, then reopen it and the session folder will be there.
 
-If it fails: wait five more minutes; Windows is the slowest host and the decrypted Administrator password is applied late in cloud-init. If RDP rejects the password (or `deployment_info` shows the Windows password as `(not yet available)`), the pem terraform used to decrypt does not match the key pair the instance launched with, so it could not decrypt the password and Guacamole baked a blank one. `deployment_info` will not have the password in this case, so pull it straight from AWS with the correct pem, then paste it into the Windows (RDP) connection in Guacamole:
+**Fails:** wait five more minutes; Windows is the slowest host and the decrypted Administrator password is applied late in cloud-init. If RDP rejects the password (or `deployment_info` shows the Windows password as `(not yet available)`), the pem terraform used to decrypt does not match the key pair the instance launched with, so it could not decrypt the password and Guacamole baked a blank one. `deployment_info` will not have the password in this case, so pull it straight from AWS with the correct pem, then paste it into the Windows (RDP) connection in Guacamole:
 
 ```powershell
 $winId = aws ec2 describe-instances --filters "Name=tag:Hostname,Values=windows" "Name=instance-state-name,Values=running" --query "Reservations[].Instances[].InstanceId" --output text
@@ -172,9 +172,9 @@ ping guac
 ping kali
 ```
 
-Success: all hostnames resolve and respond.
+**Success:** all hostnames resolve and respond.
 
-If it fails: see the redStack wiki Troubleshooting page (Connectivity Checks). The tunnel and attack path assume cross-host DNS works.
+**Fails:** see the redStack wiki Troubleshooting page (Connectivity Checks). The tunnel and attack path assume cross-host DNS works.
 
 ---
 
@@ -196,9 +196,9 @@ You already have your ShadowGate `.ovpn` on your laptop from 0_PREREQ Step 4. Mo
 
 Keep this MobaXterm terminal open. Step 9 commands run here, in this same redirector session.
 
-Success: in the same MobaXterm terminal, `ls ~/vpn/` shows exactly one `.ovpn` file.
+**Success:** in the same MobaXterm terminal, `ls ~/vpn/` shows exactly one `.ovpn` file.
 
-If it fails: the `vpn-tunnel` service picks the first file alphabetically if several exist, so keep only one in `~/vpn/`.
+**Fails:** the `vpn-tunnel` service picks the first file alphabetically if several exist, so keep only one in `~/vpn/`.
 
 ### Step 9. Start the tunnel
 
@@ -210,7 +210,7 @@ sudo systemctl start vpn-tunnel && sudo journalctl -u vpn-tunnel -f | grep -m1 "
 
 This starts the service and tails the log only until the handshake lands. `grep -m1` exits on the first match, which drops the follow and returns you to the prompt with the `Initialization Sequence Completed` line printed. No manual quit, no getting stuck in the pager.
 
-Success: the command prints `Initialization Sequence Completed` and hands you back the prompt within a few seconds.
+**Success:** the command prints `Initialization Sequence Completed` and hands you back the prompt within a few seconds.
 
 If it does not return within ~30 seconds, the handshake has not completed. Ctrl-C out and check status (no pager, nothing to quit):
 
@@ -218,7 +218,7 @@ If it does not return within ~30 seconds, the handshake has not completed. Ctrl-
 systemctl status vpn-tunnel --no-pager -l
 ```
 
-If it fails: the service will not start if `~/vpn/` is empty (Step 8). The status command above shows auth or route errors inline.
+**Fails:** the service will not start if `~/vpn/` is empty (Step 8). The status command above shows auth or route errors inline.
 
 > [!IMPORTANT]
 > Generate C2 agents only after the tunnel is up. Beacons always call back to the redirector public Elastic IP (in `deployment_info.txt`), never the `tun0` IP: HSL does not route VPN client IPs back to the target, so a `tun0` callback never returns. Full callback config is in CONFIG and ATTACK.
@@ -239,9 +239,9 @@ Test-NetConnection <ShadowGate IP> -Port 445
 
 ShadowGate answers ICMP, so a ping reply confirms the path; `TcpTestSucceeded : True` on 445 confirms the service is reachable.
 
-Success: a reply from `<ShadowGate IP>` confirms the full path is live: internal host to Guacamole (WireGuard) to redirector (OpenVPN) to the HSL target network. The lab is ready for the attack path.
+**Success:** a reply from `<ShadowGate IP>` confirms the full path is live: internal host to Guacamole (WireGuard) to redirector (OpenVPN) to the HSL target network. The lab is ready for the attack path.
 
-If it fails, isolate the break from the redirector (SSH in over Guacamole), one command at a time:
+**Fails:** isolate the break from the redirector (SSH in over Guacamole), one command at a time:
 
 ```bash
 ip route

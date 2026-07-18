@@ -28,7 +28,7 @@ Run the deploy from your host machine or a dedicated VM with the AWS CLI and Ter
 
 Use a dedicated, throwaway AWS account, not your production account. redStack stands up public-facing hosts and the AWS Acceptable Use Policy applies.
 
-Success: a dedicated AWS account with a payment method attached, not used for production workloads.
+**Success:** a dedicated AWS account with a payment method attached, not used for production workloads.
 
 ## Step 2. Install and configure the Git, Terraform, and AWS CLI
 
@@ -82,7 +82,7 @@ When prompted:
 | Default region name | `us-east-1` (must match `aws_region` in `terraform.tfvars`) |
 | Default output format | `json` |
 
-Success:
+**Success:**
 
 ```bash
 aws sts get-caller-identity
@@ -96,7 +96,7 @@ terraform --version
 
 Reports v1.0 or higher.
 
-If it fails: `InvalidClientTokenId` or `SignatureDoesNotMatch` means the keys were mistyped; re-run `aws configure`. Terraform below 1.0, upgrade. The region here must match `aws_region` in `terraform.tfvars`.
+**Fails:** `InvalidClientTokenId` or `SignatureDoesNotMatch` means the keys were mistyped; re-run `aws configure`. Terraform below 1.0, upgrade. The region here must match `aws_region` in `terraform.tfvars`.
 
 ## Step 3. Accept the Kali Marketplace EULA
 
@@ -106,7 +106,7 @@ One-time, no charge, per AWS account. Skip it and the apply fails on the Kali AM
 2. Click on `View Purchase Options` 
 3. Scroll down then click on `Subscribe`, then Accept Terms.
 
-Success: the Marketplace page shows the subscription active.
+**Success:** the Marketplace page shows the subscription active.
 
 ## Step 4. Hack Smarter Labs access and .ovpn
 
@@ -114,9 +114,9 @@ Have a Hack Smarter Labs account with an active subscription covering the target
 
 ShadowGate: https://www.hacksmarter.org/courses/e7586073-d447-41db-8f8e-6bd22576556d
 
-Success: you have a `.ovpn` file saved locally (keep it somewhere safe since you will need this later) and the ShadowGate machine launches in the HSL portal.
+**Success:** you have a `.ovpn` file saved locally (keep it somewhere safe since you will need this later) and the ShadowGate machine launches in the HSL portal.
 
-If it fails: the target IP shown at launch is inside the range and does not change your VPN config. The `.ovpn` pulls its routes from HSL at connect time.
+**Fails:** the target IP shown at launch is inside the range and does not change your VPN config. The `.ovpn` pulls its routes from HSL at connect time.
 
 ## Step 5. Clone the repository
 
@@ -129,9 +129,9 @@ git checkout dev
 > [!NOTE]
 > The workshop runs off the `dev` branch for now. The AdaptixC2 backend lives on `dev` until it merges to `main`, so `main` still ships Havoc; stay on `dev` until we announce the merge.
 
-Success: you are inside `redStack/` on the `dev` branch (`git branch --show-current` prints `dev`) and see `terraform/` with `terraform.tfvars.example` in it.
+**Success:** you are inside `redStack/` on the `dev` branch (`git branch --show-current` prints `dev`) and see `terraform/` with `terraform.tfvars.example` in it.
 
-If it fails: no `git`, install it. Corporate proxy blocking GitHub, clone over SSH: `git clone git@github.com:BaddKharma/redStack.git`.
+**Fails:** no `git`, install it. Corporate proxy blocking GitHub, clone over SSH: `git clone git@github.com:BaddKharma/redStack.git`.
 
 ## Step 6. Create the SSH key pair (right after clone, lands in `redStack/`)
 
@@ -152,14 +152,14 @@ aws ec2 create-key-pair --key-name rs-rsa-key \
 chmod 400 ./rs-rsa-key.pem
 ```
 
-Success (the key is present in `redStack/`, mode 400):
+**Success** (the key is present in `redStack/`, mode 400):
 
 ```bash
 ls -l rs-rsa-key.pem
 aws ec2 describe-key-pairs --key-names rs-rsa-key
 ```
 
-If it fails: `InvalidKeyPair.Duplicate` means `rs-rsa-key` already exists in AWS. Three options:
+**Fails:** `InvalidKeyPair.Duplicate` means `rs-rsa-key` already exists in AWS. Three options:
 
 - **Reuse**: if you still have the original `.pem`, copy it to `redStack/rs-rsa-key.pem` and skip the create command.
 - **Import**: if you have a local SSH key pair you want to use instead, import its public key: `aws ec2 import-key-pair --key-name rs-rsa-key --public-key-material fileb://~/.ssh/id_rsa.pub` and place the matching private key at `redStack/rs-rsa-key.pem`.
@@ -173,9 +173,9 @@ Confirm the file lands at `redStack/rs-rsa-key.pem`, not inside `terraform/`. It
 curl -4 -s ifconfig.me
 ```
 
-Success: a single IPv4 address. You append `/32` to it in 1_DEPLOY.
+**Success:** a single IPv4 address. You append `/32` to it in 1_DEPLOY.
 
-If it fails: output with colons is IPv6, re-run with `-4`. The security groups only wire up IPv4.
+**Fails:** output with colons is IPv6, re-run with `-4`. The security groups only wire up IPv4.
 
 ---
 
