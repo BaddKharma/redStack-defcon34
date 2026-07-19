@@ -18,13 +18,7 @@ redStack is an open source AWS and Terraform project that stands up a full red t
 
 This is the landing page for the DEF CON 34 workshop. The four workshop guides, slides, and supporting docs live here. The platform itself lives in the redStack repo linked below.
 
-> **Note (2026-07-18): C2 backend change.** The third C2 is now AdaptixC2, not Havoc (Havoc was archived upstream). The four guides are updated; the slide decks still show Havoc and will be updated separately. The swap lives on the `dev` branch until it merges to `main`, so clone from `dev`:
-
-```bash
-git clone https://github.com/BaddKharma/redStack.git
-cd redStack
-git checkout dev
-```
+> **Note: C2 backend change.** The third C2 is AdaptixC2, not Havoc (Havoc was archived upstream). The four workshop guides are updated; the slide decks still show Havoc and will be updated separately.
 
 ---
 

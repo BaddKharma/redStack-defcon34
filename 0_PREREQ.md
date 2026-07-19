@@ -131,13 +131,9 @@ To get your `.ovpn`: in the HSL portal, launch ShadowGate, then navigate to **Sy
 ```bash
 git clone https://github.com/BaddKharma/redStack.git
 cd redStack
-git checkout dev
 ```
 
-> [!NOTE]
-> The workshop runs off the `dev` branch for now. The AdaptixC2 backend lives on `dev` until it merges to `main`, so `main` still ships Havoc; stay on `dev` until we announce the merge.
-
-**Success:** you are inside `redStack/` on the `dev` branch (`git branch --show-current` prints `dev`) and see `terraform/` with `terraform.tfvars.example` in it.
+**Success:** you are inside `redStack/` on `main` and see `terraform/` with `terraform.tfvars.example` in it.
 
 **Failure:** no `git`, install it. Corporate proxy blocking GitHub, clone over SSH: `git clone git@github.com:BaddKharma/redStack.git`.
 
