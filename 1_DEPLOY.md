@@ -87,6 +87,9 @@ terraform plan
 
 **Success:** `init` reports success, and `plan` shows roughly 90 resources to add (7 EC2 instances, 2 VPCs, peering, security groups, ENIs, 2 EIPs), no errors.
 
+> [!NOTE]
+> `terraform plan` may warn: "You didn't use the -out option to save this plan..." This is expected and harmless. `-out` saves the plan to a file so `apply` executes exactly that plan rather than re-evaluating. For this workshop the gap between `plan` and `apply` is seconds, so it is not necessary.
+
 **Failure:** `InvalidKeyPair.NotFound`, `ssh_key_name` does not match AWS, list with `aws ec2 describe-key-pairs --query 'KeyPairs[].KeyName'`. `VPCLimitExceeded`, you are at the 5-VPC regional limit, delete unused VPCs or set `use_default_vpc = true`.
 
 ### Step 3. Apply
@@ -189,7 +192,7 @@ The tunnel is a per-session manual start. Do it after the lab verifies. WireGuar
 
 You already have your ShadowGate `.ovpn` on your laptop from 0_PREREQ Step 4. Move it to the redirector in two hops: laptop to the Windows operator via GuacShare, then operator to the redirector via MobaXterm.
 
-1. Get the `.ovpn` onto the Windows operator. In the Guacamole Windows (RDP) session, open the sidebar (`Ctrl+Alt+Shift`), click Devices, and upload your `.ovpn`. It lands in the `GuacShare` folder, visible in This PC in File Explorer.
+1. Get the `.ovpn` onto the Windows operator. In the Guacamole Windows (RDP) session, open the sidebar (`Ctrl+Alt+Shift`), click **Shared Drive**, then **Upload File**, and select your `.ovpn`. It lands in the `GuacShare` folder, visible in This PC in File Explorer.
 2. In MobaXterm on the operator, open the **Apache Redirector (SSH)** bookmark under the redStack Lab session folder. 
 	1. Accept the connection to the redirector
 	2. Enter the admin password from the `deployment_info.txt`

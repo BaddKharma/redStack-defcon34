@@ -44,9 +44,12 @@ Use a dedicated, throwaway AWS account, not your production account. redStack st
 
 | Platform | Command |
 | -------- | ------- |
-| macOS | `brew install terraform` |
+| macOS | `brew tap hashicorp/tap` then `brew install hashicorp/tap/terraform` |
 | Linux (Ubuntu/Debian) | See https://developer.hashicorp.com/terraform/install |
 | Windows | `choco install terraform` or download from https://developer.hashicorp.com/terraform/install |
+
+> [!NOTE]
+> On macOS, `brew install terraform` no longer works — HashiCorp is not in homebrew-core. Use the HashiCorp tap as shown above. During install, a `git-credential-osxkeychain` popup may appear asking for your system password; enter it and click **Always Allow** (not just Allow) to prevent it from looping.
 
 **Install AWS CLI:**
 
@@ -68,6 +71,9 @@ Use a dedicated, throwaway AWS account, not your production account. redStack st
 7. Copy the Access Key ID and Secret Access Key (the secret is shown only once)
 
 **Configure the AWS CLI** with the IAM user's access key:
+
+> [!NOTE]
+> If you have an existing AWS identity configured, `aws configure` will prompt to overwrite it. If you no longer need that identity, clear it first: `rm -rf ~/.aws/ && unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_PROFILE`. If you want to keep it, use a named profile instead: `aws configure --profile redstack` and prefix all commands with `--profile redstack` or set `AWS_PROFILE=redstack`.
 
 ```bash
 aws configure
@@ -113,6 +119,8 @@ One-time, no charge, per AWS account. Skip it and the apply fails on the Kali AM
 Have a Hack Smarter Labs account with an active subscription covering the target machine, and download your `.ovpn` connection pack.
 
 ShadowGate: https://www.hacksmarter.org/courses/e7586073-d447-41db-8f8e-6bd22576556d
+
+To get your `.ovpn`: in the HSL portal, launch ShadowGate, then navigate to **Systems > Download VPN Config**.
 
 **Success:** you have a `.ovpn` file saved locally (keep it somewhere safe since you will need this later) and the ShadowGate machine launches in the HSL portal.
 
