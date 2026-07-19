@@ -281,14 +281,12 @@ execute -o schtasks.exe /delete /tn svcpub /f
 
 SYSTEM on `DC01` via Sliver is done: Phase 5 took the Administrator beacon to SYSTEM with a scheduled task. Now do the same in the other two frameworks.
 
-Your turn. The Mythic and Adaptix beacons from Phase 4 are sitting at Administrator on the same DC, and every one of them holds `SeImpersonatePrivilege`, so the token-abuse ("potato") family is open to you. Land a SYSTEM callback in Mythic and Adaptix as well. Some routes to try:
+Your turn. The Mythic and Adaptix beacons from Phase 4 are sitting at Administrator on the same DC, and every one of them holds `SeImpersonatePrivilege`. Land a SYSTEM callback in Mythic and Adaptix as well. A nudge for each:
 
-- Mythic (Apollo): GodPotato, run through Apollo's `execute_assembly` (or SigmaPotato, https://github.com/tylerdotrar/SigmaPotato, a GodPotato successor built for reflective in-memory loading). It abuses `SeImpersonatePrivilege` over DCOM, so it needs no Print Spooler and works cleanly on a domain controller.
-- Adaptix: the Adaptix beacon executes BOFs and .NET assemblies, so the same two routes apply, run through Adaptix's command set (see the client's command help for exact syntax). Two things work: 
-	- A token-impersonation BOF is the clean in-session option: Mr.Un1k0d3r's Elevate-System-Trusted BOF (`https://github.com/Mr-Un1k0d3r/Elevate-System-Trusted-BOF`), loaded through Adaptix's BOF execution, impersonates winlogon's SYSTEM token via `SetThreadToken` and flips the beacon to SYSTEM (and TrustedInstaller) with no new callback. 
-	- Or stay in the potato family: a DCOM-based potato (SigmaPotato or GodPotato) run as a .NET assembly coerces a fresh SYSTEM token. Avoid PrintSpoofer here, the Print Spooler is usually off on a DC.
+- Mythic (Apollo): the task scheduler is not the only method to get SYSTEM-level execution. Apollo's native service control manager (`sc`) can show you the way.
+- Adaptix: the beacon runs BOFs in-session, and the right token-impersonation BOF flips it straight to SYSTEM with no new callback. Mr.Un1k0d3r has published one worth reading (`https://github.com/Mr-Un1k0d3r/Elevate-System-Trusted-BOF`).
 
-The point is that once you hold `SeImpersonatePrivilege`, SYSTEM is a token away, and each C2 exposes a slightly different way to spend it.
+The point is that once you hold `SeImpersonatePrivilege`, SYSTEM is a step away, and each C2 exposes a slightly different way to get there.
 
 ---
 
