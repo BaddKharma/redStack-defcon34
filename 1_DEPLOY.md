@@ -80,6 +80,9 @@ vpn_tunnel_cidrs = ["X.X.0.0/16"]   # first two octets of ShadowGate IP + .0.0/1
 
 ### Step 2. Init and plan
 
+> [!NOTE]
+> Keeping an existing AWS identity via a named profile? Terraform reads it from `AWS_PROFILE`, not `--profile`. Run `export AWS_PROFILE=redstack` first, or prefix each command: `AWS_PROFILE=redstack terraform plan`.
+
 ```bash
 terraform init
 terraform plan
