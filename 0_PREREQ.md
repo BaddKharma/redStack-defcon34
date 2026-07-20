@@ -73,7 +73,34 @@ Use a dedicated, throwaway AWS account, not your production account. redStack st
 **Configure the AWS CLI** with the IAM user's access key:
 
 > [!NOTE]
-> If you have an existing AWS identity configured, `aws configure` will prompt to overwrite it. If you no longer need that identity, clear it first: `rm -rf ~/.aws/ && unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_PROFILE`. To keep it, use a named profile: `aws configure --profile redstack`. The `--profile` flag works for `aws` commands, but Terraform reads the profile from the `AWS_PROFILE` environment variable, not a flag. Set it for the whole session with `export AWS_PROFILE=redstack` (persists until you close the shell), or prepend it to a single command: `AWS_PROFILE=redstack terraform plan`.
+> `aws configure` overwrites your default AWS profile. If you have an existing identity, clear it or use a named profile before continuing.
+
+**Have an identity you no longer need?** Clear it first:
+
+```bash
+rm -rf ~/.aws/
+unset AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_PROFILE
+```
+
+**Want to keep it?** Configure a dedicated `redstack` profile (prompts for the keys, region, and output, same as below):
+
+```bash
+aws configure --profile redstack
+```
+
+Then point Terraform and the AWS CLI at it. Terraform reads the profile from `AWS_PROFILE` and has no `--profile` flag, so either export it for the session:
+
+```bash
+export AWS_PROFILE=redstack
+```
+
+That persists until you close the shell. To use it for a single command instead, prepend it:
+
+```bash
+AWS_PROFILE=redstack terraform plan
+```
+
+Otherwise (clean machine, or after clearing above), configure the default profile:
 
 ```bash
 aws configure
