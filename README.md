@@ -36,10 +36,10 @@ This is the landing page for the DEF CON 34 workshop. The four workshop guides, 
 
 ## Where to Catch It
 
-| Village | Date and Time |
-|---|---|
-| Red Team Village | Date TBD |
-| Noob Village | Saturday, Aug 8, 1:00-2:50pm |
+| Village           | Date and Time                |
+| ----------------- | ---------------------------- |
+| Red Team Village  | Friday, Aug 7, 4:00-6:00pm   |
+| Noob Village      | Saturday, Aug 8, 1:00-2:50pm |
 | Adversary Village | Sunday, Aug 9, 10:00-11:55am |
 
 You deploy the stack yourself, walk the operator portal, stand up your C2s, and follow a full attack chain against a live range, landing a Sliver beacon, escalating to SYSTEM, and also landing in beacons for Mythic and Adaptix. 
