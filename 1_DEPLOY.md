@@ -144,7 +144,7 @@ Open `https://<GUAC_PUBLIC_IP>/guacamole`, accept the self-signed cert warning, 
 
 ### Step 5a. Let the Adaptix teamserver finish building
 
-The Adaptix teamserver compiles from source automatically during cloud-init (server plus beacon extenders, ~12 min on the default instance). It runs headless: there is no VNC desktop and nothing to kick off by hand, and it starts itself when the build finishes. Because it is the slowest backend to come up, just let it build in the background while you work Steps 6 through 10, then confirm it in CONFIG Phase C.
+The Adaptix teamserver compiles from source automatically during cloud-init (server plus beacon extenders, ~12 min on the default instance). It runs headless: there is no VNC desktop and nothing to kick off by hand, and it starts itself when the build finishes. Because it is the slowest backend to come up, let it build in the background while you work Steps 6 through 10, then confirm it in CONFIG Phase C.
 
 To watch it, SSH to the Adaptix host with the MobaXterm **Adaptix C2 (SSH)** bookmark and run:
 
@@ -152,7 +152,17 @@ To watch it, SSH to the Adaptix host with the MobaXterm **Adaptix C2 (SSH)** boo
 cloud-init status --wait; systemctl status adaptix --no-pager
 ```
 
-`active (running)` with port 4321 listening means the teamserver is ready for the operator client. If the build failed, run `~/build_adaptix_server.sh` once to retry.
+`cloud-init status --wait` prints a row of dots and returns on its own once provisioning finishes, so give it a few minutes rather than interrupting it. `active (running)` with port 4321 listening then means the teamserver is ready for the operator client. If the build failed, run `~/build_adaptix_server.sh` once to retry.
+
+You do not need to watch it at all, though. The Windows operator box signals its own readiness: when provisioning finishes, a note opens in Notepad on the desktop, reading:
+
+```text
+redStack Windows setup COMPLETE - 08/02/2026 16:53:20
+This box is ready: all operator tools are installed and MobaXterm has its saved sessions.
+Full provisioning log: C:\Windows\Temp\user-data.log  (or the "Setup Log" desktop shortcut)
+```
+
+Once you see that, MobaXterm has its saved sessions and you can work Steps 6 through 10 while Adaptix keeps building in the background.
 
 ### Step 6. Access the Windows operator
 

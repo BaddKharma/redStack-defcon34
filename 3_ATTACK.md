@@ -58,11 +58,13 @@ Target IP. ShadowGate's address is per-instance and changes by location, so this
 
 From Kali (MobaXterm **Kali Linux (SSH)** bookmark), confirm the tunnel routes to the target and fingerprint it.
 
-Confirm `10.1.0.0/16` routes via the Guacamole ENI:
+Confirm ShadowGate answers over the tunnel before scanning it:
 
 ```bash
-ip route
+ping -c 3 <ShadowGate IP>
 ```
+
+Replies confirm the tunnel is carrying traffic to the target. No replies means the tunnel is down or the target is not up; fix that before running nmap (see the failure note below).
 
 Fingerprint DC01 over the tunnel and pull its hostname off SMB and RDP:
 
