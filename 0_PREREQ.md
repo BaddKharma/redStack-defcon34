@@ -177,6 +177,8 @@ cd redStack
 
 ## Step 6. Create the SSH key pair (right after clone, lands in `redStack/`)
 
+AWS keys are **pinned to your default region**. If you have one created for your homebase region, then you will need to recreate one for `us-west-2` for the workshop.
+
 > [!IMPORTANT]
 > Create the key from inside `redStack/` so the `.pem` lands in the repo root next to `terraform/`. This is the file Terraform uses to decrypt the Windows password, and keeping it here is what makes `ssh_private_key_path = "../rs-rsa-key.pem"` resolve correctly.
 
