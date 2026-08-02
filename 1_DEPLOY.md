@@ -49,6 +49,12 @@ ssh_key_name         = "rs-rsa-key"           # matches the AWS key pair
 ssh_private_key_path = "../rs-rsa-key.pem"    # key is in the repo root, not here
 ```
 
+Set the deployment region. The example defaults to `us-east-1`, so change it to `us-west-2` for the workshop:
+
+```hcl
+aws_region = "us-west-2"   # workshop region, closest to Las Vegas. Any region works for your own homebase.
+```
+
 Set the Tunneled Access block:
 
 ```hcl
@@ -74,7 +80,7 @@ vpn_tunnel_cidrs = ["X.X.0.0/16"]   # first two octets of ShadowGate IP + .0.0/1
 > [!IMPORTANT]
 > A ShadowGate reset or reboot in the HSL portal can reassign its IP, so re-check after any reset. If the new IP lands in a different /16, `terraform destroy` and redeploy with the updated CIDR: the WireGuard routing is baked into Guacamole at boot (guac ignores `user_data` changes), so a plain `terraform apply` will not re-route a new subnet.
 
-**Success:** `terraform.tfvars` saved with your IP, `ssh_private_key_path = "../rs-rsa-key.pem"`, the three tunnel values, and the RFC1918 CIDRs.
+**Success:** `terraform.tfvars` saved with your IP, `ssh_private_key_path = "../rs-rsa-key.pem"`, `aws_region = "us-west-2"`, the three tunnel values, and the RFC1918 CIDRs.
 
 **Failure:** nothing runs yet, but recheck the key path now. It is the single most common misconfiguration.
 

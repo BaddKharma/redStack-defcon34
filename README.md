@@ -28,6 +28,7 @@ This is the landing page for the DEF CON 34 workshop. The four workshop guides, 
 | **Format** | Two-hour hands-on workshop, instructor-led. Attendees deploy live. |
 | **Level** | Intermediate. Prior red team or pentest exposure expected. |
 | **Deployment mode** | Tunneled Access (OpenVPN to Hack Smarter Labs) |
+| **Region** | us-west-2, closest to Las Vegas. Any region works for your own homebase. |
 | **Target** | Live Hack Smarter Labs range, per-user instanced |
 
 ---
@@ -79,6 +80,8 @@ Full prerequisites and setup steps are in the deployment guide ([1_DEPLOY.md](1_
 - An active Hack Smarter Labs account: https://www.hacksmarter.org
 - Your provided `.ovpn` file for the assigned range
 - A CloudWatch billing alarm set before your first deploy
+
+Deploy in us-west-2 for the workshop. It is the closest region to Las Vegas, which keeps Guacamole and RDP latency low, and standardizing on one region makes instructor troubleshooting faster. redStack runs in any region, so use whatever you prefer for your own homebase; set it with `aws configure` and as `aws_region` in `terraform.tfvars`, and keep the two matching.
 
 Budget roughly $2 to $3 of AWS spend for the session. The full stack runs about $0.27 per hour of compute, so a two-hour session is around $0.55 in EC2. The rest is buffer for EBS storage, the Elastic IP, data transfer, and any time the environment stays up before you tear it down. Run `terraform destroy` when you finish to stop the meter.
 

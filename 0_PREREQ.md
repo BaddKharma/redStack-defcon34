@@ -14,13 +14,16 @@ Run the deploy from your host machine or a dedicated VM with the AWS CLI and Ter
 ## Checklist
 
 - [ ] Dedicated, throwaway AWS account (payment method attached)
-- [ ] AWS CLI installed and configured (IAM user with `AdministratorAccess`, region `us-east-1`)
+- [ ] AWS CLI installed and configured (IAM user with `AdministratorAccess`, region `us-west-2`)
 - [ ] Terraform 1.0 or higher installed
 - [ ] Kali Linux Marketplace EULA accepted on that account
 - [ ] Hack Smarter Labs account with an active subscription covering ShadowGate, and your `.ovpn` downloaded
 - [ ] redStack repo cloned
 - [ ] SSH key pair `rs-rsa-key` created in AWS, `.pem` in the repo root
 - [ ] Your public IPv4 recorded
+
+> [!NOTE]
+> **Region: use `us-west-2` for the workshop.** DEF CON is in Las Vegas, so us-west-2 (Oregon) is the nearest region and keeps Guacamole and RDP latency low; standardizing on one region also makes instructor troubleshooting faster. redStack is region-agnostic, so for your own homebase deployments outside the workshop, pick whatever region you prefer. Whatever you choose, your AWS CLI default region and `aws_region` in `terraform.tfvars` must match, because EC2 key pairs are per-region.
 
 ---
 
@@ -112,7 +115,7 @@ When prompted:
 | ------ | ----- |
 | AWS Access Key ID | From IAM > your user > Security credentials |
 | AWS Secret Access Key | Shown once at key creation; if lost, delete and recreate |
-| Default region name | `us-east-1` (must match `aws_region` in `terraform.tfvars`) |
+| Default region name | `us-west-2` (must match `aws_region` in `terraform.tfvars`) |
 | Default output format | `json` |
 
 **Success:**
