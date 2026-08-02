@@ -283,12 +283,11 @@ execute -o schtasks.exe /delete /tn svcpub /f
 
 SYSTEM on `DC01` via Sliver is done: Phase 5 took the Administrator beacon to SYSTEM with a scheduled task. Now do the same in the other two frameworks.
 
-Your turn. The Mythic and Adaptix beacons from Phase 4 are sitting at Administrator on the same DC, and every one of them holds `SeImpersonatePrivilege`. Land a SYSTEM callback in Mythic and Adaptix as well. A nudge for each:
-
-- Mythic (Apollo): the task scheduler is not the only method to get SYSTEM-level execution. Apollo's native service control manager (`sc`) can show you the way.
+Your turn. The Mythic and Adaptix beacons from Phase 4 are sitting at Administrator on the same DC. Elevate to **SYSTEM** in Mythic and Adaptix as well.
+- Mythic (Apollo): the task scheduler is not the only method to get SYSTEM-level execution. Apollo's native service control manager (`sc`) can show you the way, just be sure to create a new windows service binary.
 - Adaptix: the beacon runs BOFs in-session, and the right token-impersonation BOF flips it straight to SYSTEM with no new callback. Mr.Un1k0d3r has published one worth reading (`https://github.com/Mr-Un1k0d3r/Elevate-System-Trusted-BOF`).
 
-The point is that once you hold `SeImpersonatePrivilege`, SYSTEM is a step away, and each C2 exposes a slightly different way to get there.
+The point is that once you hold Admin privileges, SYSTEM is a step away, and each C2 exposes a slightly different way to get there.
 
 ---
 
