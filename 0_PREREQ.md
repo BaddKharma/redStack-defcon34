@@ -186,6 +186,12 @@ Windows (PowerShell):
 aws ec2 create-key-pair --key-name rs-rsa-key --query 'KeyMaterial' --output text | Out-File -Encoding ascii rs-rsa-key.pem
 ```
 
+Then lock it down to make it SSH useable:
+
+```
+icacls rs-rsa-key.pem /inheritance:r /grant:r "$($env:USERNAME):R"
+```
+
 Linux / macOS:
 
 ```bash
