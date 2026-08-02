@@ -93,7 +93,7 @@ jobs
 **Be sure to replace the `<REDIR_PUBLIC_IP>` with your actual redirector IP that can be found in `deployment_info.txt`.**
 
 > [!NOTE]
-> Cross-compilation takes **5 to 7 minutes** and will look like it is hung. It is not — let it run. **While waiting, skip ahead to Step B1** to get logged into Mythic so that time is not wasted.
+> Cross-compilation takes **5 to 7 minutes** and will look like it is hung. It is not; let it run. **While waiting, skip ahead to Step B1** to get logged into Mythic so that time is not wasted.
 
 ```text
 generate --http https://<REDIR_PUBLIC_IP>/cloud/storage/objects/ --os windows --arch amd64 --format exe --c2profile redstack --save /tmp/sysProxy.exe
@@ -154,12 +154,12 @@ From the Windows operator (Guacamole RDP), open Chromium to `https://mythic:7443
 
 Left sidebar > **Create Payload**. The builder walks you through four sections in order:
 
-1. **Select OS** — choose `Windows`.
-2. **Select Payload** — choose `Apollo`. A **Continue from Existing Payload / Start Fresh** toggle appears; select **Start Fresh**.
-3. **Build Parameters** — set `output_type` to `WinExe` and click next.
-4. **Commands** — keep the default set (`shell`, `ps`, `run`, `upload`) and add `whoami` and `ls`.
+1. **Select OS**: choose `Windows`.
+2. **Select Payload**: choose `Apollo`. A **Continue from Existing Payload / Start Fresh** toggle appears; select **Start Fresh**.
+3. **Build Parameters**: set `output_type` to `WinExe` and click next.
+4. **Commands**: keep the default set (`shell`, `ps`, `run`, `upload`) and add `whoami` and `ls`.
 	1. Find `whoami` on the left side, toggle it, and press the single arrow `>` to add it to the payload build. Do the same for `ls`. Click next.
-5. **C2 Profiles** — pick `http`, click **+ INCLUDE PROFILE**.
+5. **C2 Profiles**: pick `http`, click **+ INCLUDE PROFILE**.
 
 On the `http` profile, set only these fields, in the order they appear in the UI. Leave everything else (encryption, kill date, and so on) at its default:
 
