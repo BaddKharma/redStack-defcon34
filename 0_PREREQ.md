@@ -118,6 +118,14 @@ When prompted:
 | Default region name | `us-west-2` (must match `aws_region` in `terraform.tfvars`) |
 | Default output format | `json` |
 
+**Already using the CLI in another region?** Switch the default without re-entering your keys:
+
+```bash
+aws configure set region us-west-2
+```
+
+For a named profile, add `--profile redstack`. Confirm the current value with `aws configure get region`. To override a single shell without touching your config, export `AWS_DEFAULT_REGION=us-west-2`.
+
 **Success:**
 
 ```bash
