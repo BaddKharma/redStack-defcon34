@@ -291,6 +291,14 @@ The point is that once you hold Admin privileges, SYSTEM is a step away, and eac
 
 ---
 
+## redStack beyond this workshop
+
+The workshop wires redStack to Hack Smarter Labs, but the tunnel is provider-agnostic. Any range that hands you an OpenVPN connection works the same way: drop the `.ovpn` on the redirector and set `vpn_tunnel_cidrs` to the target subnet. That covers Hack The Box, OffSec Proving Grounds, VulnLab, and most commercial cyber ranges.
+
+For self-hosted labs with a public-facing footprint, such as Ludus or GOAD, skip the tunnel entirely and run redStack in direct access mode against the lab's internet-reachable IPs. Same operator stack and C2 backends, no OpenVPN hop, as long as the target has an internet connection redStack can reach.
+
+---
+
 ## Phase 7: Teardown and cost
 
 The workshop ends here. Tear the stack down; it is what stops all charges. Run destroy from `redStack/terraform/`, the same directory you applied from:

@@ -31,6 +31,9 @@ Run the deploy from your host machine or a dedicated VM with the AWS CLI and Ter
 
 Use a dedicated, throwaway AWS account, not your production account. redStack stands up public-facing hosts and the AWS Acceptable Use Policy applies.
 
+> [!IMPORTANT]
+> **AWS Free Tier is not sufficient.** redStack stands up multiple EC2 instances plus an Elastic IP, EBS, and data transfer, none of which fall under the always-free allowances. New accounts created after July 15, 2025 start with capped promotional credits and, on the Free plan, auto-close when those run out. You need a payment method attached with pay-as-you-go (Paid plan) billing enabled. Budget roughly $2 to $3 for the session.
+
 **Success:** a dedicated AWS account with a payment method attached, not used for production workloads.
 
 ## Step 2. Install and configure the Git, Terraform, and AWS CLI
@@ -53,6 +56,17 @@ Use a dedicated, throwaway AWS account, not your production account. redStack st
 
 > [!NOTE]
 > On macOS, `brew install terraform` no longer works — HashiCorp is not in homebrew-core. Use the HashiCorp tap as shown above. During install, a `git-credential-osxkeychain` popup may appear asking for your system password; enter it and click **Always Allow** (not just Allow) to prevent it from looping.
+
+> [!NOTE]
+> **On Kali Linux**, the HashiCorp apt repo publishes no `kali-rolling` release, so the standard Debian/Ubuntu steps fail with:
+> `Error: The repository 'https://apt.releases.hashicorp.com kali-rolling Release' does not have a Release file.`
+> Add the HashiCorp GPG key, then point the source list at a current Debian stable codename (`trixie`) instead of `kali-rolling`:
+> ```bash
+> wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg > /dev/null
+> echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com trixie main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+> sudo apt update && sudo apt install terraform
+> ```
+> (Thanks 0xRednax.)
 
 **Install AWS CLI:**
 
